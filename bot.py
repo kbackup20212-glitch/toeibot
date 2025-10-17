@@ -14,6 +14,8 @@ from threading import Thread
 
 from jr_east_detector import check_jr_east_irregularities
 from tama_monorail_info_detector import check_tama_monorail_info
+from tokyo_metro_detector import check_tokyo_metro_info
+from jr_east_info_detector import check_jr_east_info
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 NOTIFICATION_USER_ID = os.getenv('NOTIFICATION_USER_ID')
