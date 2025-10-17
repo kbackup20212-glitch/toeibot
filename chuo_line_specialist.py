@@ -3,10 +3,14 @@ import re
 # --- この専門家だけが知っている、中央線のルールブック ---
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急あずさ": {'Matsumoto', 'Hakuba', 'Shinjuku', 'Tokyo', 'Chiba'},
-    "特急かいじ": {'Kofu', 'Shinjuku', 'Tokyo'},
+    "特急かいじ": {'Ryuo', 'Kofu', 'Shinjuku', 'Tokyo'},
     "特急富士回遊": {'Kawaguchiko', 'Shinjuku'},
     "特急アルプス": {},
-    
+}
+CHUO_RAPID_REGULAR_DESTINATIONS = {
+    "快速": {'Tokyo','Mitaka','MusashiKoganei','Kokubunji', 'Tachikawa','Ome',
+           'Toyoda','Hachioji','Takao','Otsuki'},
+    "快速ｻｳﾝﾄﾞｺﾆﾌｧｰ": {},
 }
 CHUO_LOCAL_REGULAR_DESTINATIONS = {
     "各停": {'Tokyo', 'MusashiKoganei','Kokubunji', 'Tachikawa','Toyoda','Hachioji','Takao','Otsuki','Ome'},
@@ -20,6 +24,13 @@ def _get_chuo_local_type_name(train_number_str):
     if not train_number_str.endswith('M'): return "各停"
     if re.match(r'^26\d{2}M$', train_number_str): return "普通むさしの号"
     return "普通"
+
+def _get_chuo_rapid_nickname(train_number_str):
+    match = re.search(r'\d+', train_number_str)
+    if not match: return "快速"
+    num = int(match.group(0))
+    if (9876 <= num <= 9879): return "快速ｻｳﾝﾄﾞｺﾆﾌｧｰ"
+    return "快速"
 
 def _get_chuo_limited_express_nickname(train_number_str):
     match = re.search(r'\d+', train_number_str)
@@ -48,6 +59,13 @@ def check_chuo_line_train(train, general_regular_trips, general_train_type_names
             allowed_dests = LIMITED_EXPRESS_REGULAR_DESTINATIONS[nickname]
             is_irregular = dest_station_en not in allowed_dests
             return is_irregular, nickname
+    
+       # 【快速の場合】
+    if train_type_id == 'odpt.TrainType:JR-East.rapid':
+        rapid_type = _get_chuo_rapid_nickname(train_number)
+        allowed_dests = CHUO_RAPID_REGULAR_DESTINATIONS.get(local_type, set())
+        is_irregular = dest_station_en not in allowed_dests
+        return is_irregular, rapid_type
     
     # 【各停・普通の場合】
     if train_type_id == 'odpt.TrainType:JR-East.Local':

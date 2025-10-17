@@ -2,6 +2,7 @@ import os
 import requests
 import re
 from chuo_line_specialist import check_chuo_line_train
+from tokaido_line_specialist import check_tokaido_line_train
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:Train"
@@ -63,8 +64,8 @@ STATION_DICT = {
 
     # --- [追加] JR京浜東北線・根岸線 ---
     'Omiya': '大宮', 'SaitamaShintoshin': 'さいたま新都心', 'Yono': '与野', 'KitaUrawa': '北浦和', 
-    'Urawa': '浦和', 'Minami-Urawa': '南浦和', 'Warabi': '蕨', 'NishiKawaguchi': '西川口', 
-    'Kawaguchi': '川口', 'Akabane': '赤羽', 'Higashi-Jujo': '東十条', 'Oji': '王子', 
+    'Urawa': '浦和', 'MinamiUrawa': '南浦和', 'Warabi': '蕨', 'NishiKawaguchi': '西川口', 
+    'Kawaguchi': '川口', 'Akabane': '赤羽', 'HigashiJujo': '東十条', 'Oji': '王子', 
     'KamiNakazato': '上中里', 'Oimachi': '大井町', 'Omori': '大森', 'Kamata': '蒲田', 'Kawasaki': '川崎', 
     'Tsurumi': '鶴見', 'ShinKoyasu': '新子安', 'HigashiKanagawa': '東神奈川', 'Yokohama': '横浜', 
     'Sakuragicho': '桜木町', 'Kannai': '関内', 'Ishikawacho': '石川町', 'Yamate': '山手', 
@@ -72,7 +73,7 @@ STATION_DICT = {
     'Konandai': '港南台', 'Hongodai': '本郷台', 'Ofuna': '大船',
 
     # --- [追加] JR中央・総武線各駅停車 ---
-    'Higashi-Nakano': '東中野', 'Okubo': '大久保', 'Yoyogi': '代々木', 'Sendagaya': '千駄ケ谷',
+    'HigashiNakano': '東中野', 'Okubo': '大久保', 'Yoyogi': '代々木', 'Sendagaya': '千駄ケ谷',
     'Shinanomachi': '信濃町', 'Ichigaya': '市ケ谷', 'Iidabashi': '飯田橋', 'Suidobashi': '水道橋', 
     'Akihabara': '秋葉原', 'Asakusabashi': '浅草橋', 'Ryogoku': '両国', 'Kinshicho': '錦糸町', 
     'Kameido': '亀戸', 'Hirai': '平井', 
@@ -540,7 +541,7 @@ JR_LINES_TO_MONITOR = [
         "id": "odpt.Railway:JR-East.Ome",
         "name": "青梅線",
         "regular_trips": {
-            ('odpt.TrainType:JR-East.Local', 'Okutama'),
+            ('odpt.TrainType:JR-East.Local', 'OkuTama'),
             ('odpt.TrainType:JR-East.Local', 'Ome'),
             ('odpt.TrainType:JR-East.Local', 'Kabe'),
             ('odpt.TrainType:JR-East.Local', 'MusashiItsukaichi'),
@@ -552,6 +553,43 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.SpecialRapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.SpicialRapid', 'Ome'),
             ('odpt.TrainType:JR-East.CommuterSpecialRapid', 'Tokyo'),
+        }
+    },
+    {
+        "id": "odpt.Railway:JR-East.Tokaido",
+        "name": "東海道線",
+        "regular_trips": {
+            ('odpt.TrainType:JR-East.Local', 'Ito'),
+            ('odpt.TrainType:JR-East.Local', 'Numazu'),
+            ('odpt.TrainType:JR-East.Local', 'Atami'),
+            ('odpt.TrainType:JR-East.Local', 'Odawara'),
+            ('odpt.TrainType:JR-East.Local', 'Kozu'),
+            ('odpt.TrainType:JR-East.Local', 'Hiratsuka'),
+            ('odpt.TrainType:JR-East.Local', 'Shinagawa'),
+            ('odpt.TrainType:JR-East.Local', 'Tokyo'),
+            ('odpt.TrainType:JR-East.Local', 'Ueno'),
+            ('odpt.TrainType:JR-East.Local', 'Tsuchiura'),
+            ('odpt.TrainType:JR-East.Local', 'Mito'),
+            ('odpt.TrainType:JR-East.Local', 'Katsuta'),
+            ('odpt.TrainType:JR-East.Local', 'Takahagi'),
+            ('odpt.TrainType:JR-East.Local', 'Koga'),
+            ('odpt.TrainType:JR-East.Local', 'Koganei'),
+            ('odpt.TrainType:JR-East.Local', 'Utsunomiya'),
+            ('odpt.TrainType:JR-East.Local', 'Kagohara'),
+            ('odpt.TrainType:JR-East.Local', 'Takasaki'),
+            ('odpt.TrainType:JR-East.Local', 'ShimMaebashi'),
+            ('odpt.TrainType:JR-East.Local', 'Maebashi'),
+            ('odpt.TrainType:JR-East.Rapid', 'Matsudo'),
+            ('odpt.TrainType:JR-East.Rapid', 'Toride'),
+            ('odpt.TrainType:JR-East.Rapid', 'Narita'),
+            ('odpt.TrainType:JR-East.Rapid', 'Maebashi'),
+            ('odpt.TrainType:JR-East.Rapid', 'Takasaki'),
+            ('odpt.TrainType:JR-East.Rapid', 'Utsunomiya'),
+            ('odpt.TrainType:JR-East.Rapid', 'Kagohara'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Shinagawa'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Tsuchiura'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Takasaki'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Odawara'),
         }
     },
 ]
@@ -580,12 +618,15 @@ def process_irregularities(train_data, line_config):
         
         is_irregular = False
         train_type_jp = ""
+        display_dest_en = dest_station_en
 
         # 【現場監督の判断】
         if line_config['id'] == 'odpt.Railway:JR-East.ChuoRapid':
             is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Chuo':
             is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        elif line_config['id'] == 'odpt.Railway:JR-East.Tokaido':
+            is_irregular, train_type_jp, display_dest_en = check_tokaido_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         else: # それ以外の路線
             current_trip = (train_type_id, dest_station_en)
             if current_trip not in line_config.get("regular_trips", {}):
@@ -595,7 +636,11 @@ def process_irregularities(train_data, line_config):
         if is_irregular and notification_id not in notified_trains:
             try:
                 line_name_jp = line_config.get("name", "?")
-                dest_station_jp = STATION_DICT.get(dest_station_en, dest_station_en)
+                if "." in display_dest_en:
+                    parts = display_dest_en.split('.')
+                    dest_station_jp = "・".join([STATION_DICT.get(part, part) for part in parts])
+                else:
+                    dest_station_jp = STATION_DICT.get(dest_station_en, dest_station_en)
                 location_text = ""
                 from_station_id = train.get("odpt:fromStation")
                 to_station_id = train.get("odpt:toStation")
