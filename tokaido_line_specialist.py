@@ -2,7 +2,7 @@ import re
 
 # --- この専門家だけが知っている、東海道線のルールブック ---
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
-    '寝台特急ｻﾝﾗｲｽﾞ': {'Takamatsu', 'Kotohira'},
+    '寝台特急ｻﾝﾗｲｽﾞ': {'Takamatsu', 'Kotohira', 'Tokyo'},
     '特急ｻﾌｨｰﾙ踊り子': {'Tokyo', 'IzukyuShimoda'},
     '特急踊り子': {'Tokyo', 'IzukyuShimoda', 'Shinjuku','Ikebukuro'},
     '特急湘南': {'Tokyo', 'Shinjuku', 'Hiratsuka', 'Odawara'},

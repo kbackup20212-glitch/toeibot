@@ -6,7 +6,7 @@ LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急かいじ": {'Ryuo', 'Kofu', 'Shinjuku', 'Tokyo'},
     "特急富士回遊": {'Kawaguchiko', 'Shinjuku'},
     "特急新宿さざなみ": {'Shinjuku', 'Tateyama'},
-    "特急新宿わかしお": {'Shinjuku', 'Awakamogawa'},
+    "特急新宿わかしお": {'Shinjuku', 'AwaKamogawa'},
     "特急アルプス": {},
 }
 CHUO_RAPID_REGULAR_DESTINATIONS = {
@@ -38,12 +38,12 @@ def _get_chuo_limited_express_nickname(train_number_str):
     match = re.search(r'\d+', train_number_str)
     if not match: return "特急"
     num = int(match.group(0))
-    if (1 <= num <= 99) or (5001 <= num <= 5099) or (8001 <= num <= 8099) or (9001 <= num <= 9099): return "特急あずさ"
-    if (3100 <= num <= 3199) or (5100 <= num <= 5199) or (8100 <= num <= 8189) or (9100 <= num <= 9189): return "特急かいじ"
     if (8190 <= num <= 8199) or (9190 <= num <= 9199): return "特急富士回遊"
     if (9094 <= num <= 9096): return "特急アルプス"
     if (9040 <= num <= 9049): return "特急新宿さざなみ"
     if (9050 <= num <= 9059): return "特急新宿わかしお"
+    if (1 <= num <= 99) or (5001 <= num <= 5099) or (8001 <= num <= 8099) or (9001 <= num <= 9039): return "特急あずさ"
+    if (3100 <= num <= 3199) or (5100 <= num <= 5199) or (8100 <= num <= 8189) or (9100 <= num <= 9189): return "特急かいじ"
     return "特急"
 
 # --- この専門家が、現場監督に提供する唯一の報告機能 ---

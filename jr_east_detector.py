@@ -57,11 +57,17 @@ STATION_DICT = {
     'Nagano': '長野', 
 
     # --- [追加] JR総武線・房総各線 (主要駅) ---
-    'Kinshicho': '錦糸町', 'Funabashi': '船橋', 'Tsudanuma': '津田沼', 'Chiba': '千葉', 
-    'Soga': '蘇我', 'Kisarazu': '木更津', 'Kimitsu': '君津', 'Tateyama': '館山', 'Chikura': '千倉', 
+    'Kisarazu': '木更津', 'Kimitsu': '君津', 'Tateyama': '館山', 'Chikura': '千倉', 
     'Awakamogawa': '安房鴨川', 'Oami': '大網', 'Mobara': '茂原', 'KazusaIchinomiya': '上総一ノ宮', 
     'Ohara': '大原', 'Katsuura': '勝浦', 'Sakura': '佐倉', 'Narita': '成田', 'Sawara': '佐原',  
-    'NaritaAirport': '成田空港', 'Choshi': '銚子', 'KashimaJingu': '鹿島神宮',
+    'NaritaAirport': '成田空港', 'Choshi': '銚子', 'KashimaJingu': '鹿島神宮', 'Yoshikawaminami': '吉川美南',
+    'FuchuHommachi': '府中本町', 'HigashiTokorozawa': '東所沢', 
+
+    #京葉線 (東京～蘇我)
+    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiohama': '潮見', 'KasaiRinkaikoen': '葛西臨海公園',
+    'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
+    'ShinNarashino': '新習志野', 'Kaihimmakuhari': '海浜幕張', 'Kemigawahama': '検見川浜',
+    'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと',
 
     # --- [追加] JR京浜東北線・根岸線 ---
     'Omiya': '大宮', 'SaitamaShintoshin': 'さいたま新都心', 'Yono': '与野', 'KitaUrawa': '北浦和', 
@@ -114,15 +120,15 @@ STATION_DICT = {
     'Kozukue': '小机', 'ShinYokohama': '新横浜', 'Kikuna': '菊名', 'Oguchi': '大口', 
     'HigashiKanagawa': '東神奈川',
 
-    # 両毛線 (前橋～高崎)
-    'Maebashi': '前橋', 'ShinMaebashi': '新前橋', 'Ino': '井野', 'Takasakitonyamachi': '高崎問屋町', 'Takasaki': '高崎',
+    # 両毛・上越線 (北急十日町～高崎)
+    'Tokamachi': '十日町', 'EchigoYuzawa': '越後湯沢', 'Doai': '土合', 'Minakami': '水上',
+    'Numazawa': '沼田', 'Shibukawa': '渋川', 'Maebashi': '前橋', 'ShinMaebashi': '新前橋', 
+    'Ino': '井野', 'Takasakitonyamachi': '高崎問屋町', 'Takasaki': '高崎',
 
-    # 高崎線 (高崎～大宮)
-    # Takasakiは上記にあり
+    # 高崎線 (倉賀野～宮原)
     'Kuragano': '倉賀野', 'Shinmachi': '新町', 'Jimbohara': '神保原', 'Honjo': '本庄', 'Okabe': '岡部', 'Fukaya': '深谷',
     'Okarina': '岡部', 'Kagohara': '籠原', 'Kumagaya': '熊谷', 'Gyoda': '行田', 'Fukiage': '吹上', 'KitaKonosu': '北鴻巣',
     'Konosu': '鴻巣', 'Kitamoto': '北本', 'Okegawa': '桶川', 'KitaAgeo': '北上尾', 'Ageo': '上尾', 'Miyahara': '宮原',
-    # Omiyaは他路線で追加済み
 
     # 宇都宮線 (宇都宮～大宮)
     'Utsunomiya': '宇都宮', 'Suzumenomiya': '雀宮', 'Ishibashi': '石橋', 'Jichiidai': '自治医大', 'Koganei': '小金井',
@@ -133,6 +139,10 @@ STATION_DICT = {
     'Okamoto': '岡本', 'Hoshakuji': '宝積寺', 'Ujiie': '氏家', 'Kamasusaka': '蒲須坂',
     'Kataoka': '片岡', 'Yaita': '矢板', 'Nozaki': '野崎', 'NishiNasuno': '西那須野',
     'Nasushiobara': '那須塩原', 'Kuroiso': '黒磯',
+
+    #烏山線
+    'Karasuyama': '烏山', 'Ogane': '大金', 'Konoyama': '鴻野山', 'Niita': '仁井田',
+    'ShimotsukeHanaoka': '下野花岡', 
 
     # --- [追加] JR日光線 ---
     'Tsuruta': '鶴田', 'Kanuma': '鹿沼', 'Fubasami': '文挟', 'ShimotsukeOsawa': '下野大沢',
@@ -556,7 +566,8 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.OmeSpecialRapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.SpecialRapid', 'Tokyo'),
-            ('odpt.TrainType:JR-East.SpicialRapid', 'Ome'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Ome'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'OkuTama'),
             ('odpt.TrainType:JR-East.CommuterSpecialRapid', 'Tokyo'),
         }
     },
@@ -629,6 +640,8 @@ JR_LINES_TO_MONITOR = [
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Tokyo'),
             ('odpt.TrainType:JR-East.Local', 'NishiFunabashi'),
+            ('odpt.TrainType:JR-East.Local', 'MinamiFunabashi'),
+            ('odpt.TrainType:JR-East.Local', 'Omiya'),
             ('odpt.TrainType:JR-East.Local', 'HigashiTokorozawa'),
             ('odpt.TrainType:JR-East.Local', 'Fuchuhommachi'),
             ('odpt.TrainType:JR-East.Local', 'ShinNarashino'),
@@ -649,6 +662,8 @@ JR_LINES_TO_MONITOR = [
         "id": "odpt.Railway:JR-East.SaikyoKawagoe",
             "name": "埼京線",
             "regular_trips": { 
+            ('odpt.TrainType:JR-East.Local', 'Hachioji'),
+            ('odpt.TrainType:JR-East.Local', 'Komagawa'),
             ('odpt.TrainType:JR-East.Local', 'Kawagoe'),
             ('odpt.TrainType:JR-East.Local', 'Omiya'),
             ('odpt.TrainType:JR-East.Local', 'MusashiUrawa'),
