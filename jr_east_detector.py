@@ -2,7 +2,6 @@ import os
 import requests
 import re
 from chuo_line_specialist import check_chuo_line_train
-from chuo_main_line_specialist import check_train as check_chuo_main_line_train
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:Train"
@@ -554,7 +553,7 @@ def process_irregularities(train_data, line_config):
         if line_config['id'] == 'odpt.Railway:JR-East.ChuoRapid':
             is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Chuo':
-            is_irregular, train_type_jp = check_chuo_main_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+            is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         else: # それ以外の路線
             current_trip = (train_type_id, dest_station_en)
             if current_trip not in line_config.get("regular_trips", {}):
