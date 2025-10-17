@@ -41,10 +41,15 @@ STATION_DICT = {
     'MusashiItsukaichi': '武蔵五日市',
 
     # --- [追加] 富士急行線 ---
-    'Fujisan': '富士山', 'FujikyuHighland': '富士急ハイランド', 'Kawaguchiko': '河口湖',
+    'Tsurushi': '都留市', 'Tsurubunkadaigakumae': '都留文科大学前', 'Gekkouji': '月江寺', 
+    'Shimoyoshida': '下吉田','Fujisan': '富士山', 'FujikyuHighland': '富士急ハイランド', 
+    'Kawaguchiko': '河口湖',
 
     # --- [追加] JR中央本線・篠ノ井線・大糸線 (主要駅) ---
-    'Kofu': '甲府', 'Ryuo': '竜王', 'Nirasaki': '韮崎', 'Kobuchizawa': '小淵沢', 'Chino': '茅野', 
+    'Hatsukari' : '初狩', 'Sasago': '笹子', 'KaiYamato': '甲斐大和', 'KatsunumaBudokyo': '勝沼ぶどう郷',
+    'Enzan': '塩山', 'HigashiYamanashi': '東山梨', 'Yamanashishi': '山梨市', 'Kasugaicho': '春日居町',
+    'IsaawaOnsen': '石和温泉', 'Sakaori': '酒折', 'Kofu': '甲府', 'Ryuo': '竜王', 
+    'Nirasaki': '韮崎', 'Kobuchizawa': '小淵沢', 'Chino': '茅野', 
     'KamiSuwa': '上諏訪', 'ShimoSuwa': '下諏訪', 'Okaya': '岡谷', 'Shiojiri': '塩尻', 
     'Matsumoto': '松本', 'ShinanoOmachi': '信濃大町', 'Hakuba': '白馬', 'MinamiOtari': '南小谷',
     'Nagano': '長野', 
@@ -520,6 +525,30 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Local', 'Zushi'),
             ('odpt.TrainType:JR-East.Rapid', 'Utsunomiya'),
             ('odpt.TrainType:JR-East.Rapid', 'Zushi'),    
+        }
+    },
+    {
+        "id": "odpt.Railway:JR-East.Itsukaichi",
+        "name": "五日市線",
+        "regular_trips": {
+            ('odpt.TrainType:JR-East.Local', 'MusashiItsukaichi'),
+            ('odpt.TrainType:JR-East.Local', 'Haijima'),
+            ('odpt.TrainType:JR-East.Local', 'Tachikawa'),
+        }
+    },
+    {
+        "id": "odpt.Railway:JR-East.Ome",
+        "name": "青梅線",
+        "regular_trips": {
+            ('odpt.TrainType:JR-East.Local', 'Ome'),
+            ('odpt.TrainType:JR-East.Local', 'Kabe'),
+            ('odpt.TrainType:JR-East.Local', 'Haijima'),
+            ('odpt.TrainType:JR-East.Local', 'Tachikawa'),
+            ('odpt.TrainType:JR-East.Rapid', 'Mitaka'),
+            ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
+            ('odpt.TrainType:JR-East.OmeSpecialRapid', 'Tokyo'),
+            ('odpt.TrainType:JR-East.SpecialRapid', 'Tokyo'),
+            ('odpt.TrainType:JR-East.CommuterSpecialRapid', 'Tokyo'),
         }
     },
 ]

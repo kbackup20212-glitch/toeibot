@@ -11,7 +11,7 @@ LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
 CHUO_LOCAL_REGULAR_DESTINATIONS = {
     "各停": {'Tokyo', 'MusashiKoganei','Kokubunji', 'Tachikawa','Toyoda','Hachioji','Takao','Otsuki','Ome'},
     "普通むさしの号": {'Hachioji', 'Omiya'},
-    "普通": {'Tachikawa','Takao', 'Otsuki','Kawaguchiko','Kobuchizawa', 'Matsumoto'},
+    "普通": {'Tachikawa','Takao', 'Otsuki','Kawaguchiko','Kobuchizawa', 'Matsumoto','Nirasaki','Enzan'},
 }
 
 # --- この専門家だけが使う、特殊な道具 ---
