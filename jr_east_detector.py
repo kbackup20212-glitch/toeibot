@@ -36,7 +36,7 @@ STATION_DICT = {
     'Ome': '青梅', 'Miyanohira': '宮ノ平', 'Hinatawada': '日向和田', 'Ishigamimae': '石神前', 
     'Futamatao': '二俣尾', 'Ikusabata': '軍畑', 'Sawai': '沢井', 'Mitake': '御嶽', 
     'Kawai': '川井', 'Kori': '古里', 'Hatonosu': '鳩ノ巣', 'Shiromaru': '白丸', 
-    'Okutama': '奥多摩', 'Kumagawa': '熊川', 'HigashiAkiru': '東秋留', 
+    'OkuTama': '奥多摩', 'Kumagawa': '熊川', 'HigashiAkiru': '東秋留', 
     'Akigawa': '秋川', 'MusashiHikida': '武蔵引田', 'MusashiMasuko': '武蔵増戸', 
     'MusashiItsukaichi': '武蔵五日市',
 
@@ -540,14 +540,17 @@ JR_LINES_TO_MONITOR = [
         "id": "odpt.Railway:JR-East.Ome",
         "name": "青梅線",
         "regular_trips": {
+            ('odpt.TrainType:JR-East.Local', 'Okutama'),
             ('odpt.TrainType:JR-East.Local', 'Ome'),
             ('odpt.TrainType:JR-East.Local', 'Kabe'),
+            ('odpt.TrainType:JR-East.Local', 'MusashiItsukaichi'),
             ('odpt.TrainType:JR-East.Local', 'Haijima'),
             ('odpt.TrainType:JR-East.Local', 'Tachikawa'),
             ('odpt.TrainType:JR-East.Rapid', 'Mitaka'),
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.OmeSpecialRapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.SpecialRapid', 'Tokyo'),
+            ('odpt.TrainType:JR-East.SpicialRapid', 'Ome'),
             ('odpt.TrainType:JR-East.CommuterSpecialRapid', 'Tokyo'),
         }
     },
@@ -604,8 +607,8 @@ def process_irregularities(train_data, line_config):
                     from_jp = STATION_DICT.get(from_station_id.split('.')[-1], from_station_id.split('.')[-1])
                     location_text = f"{from_jp}に停車中"
                 delay_minutes = round(train.get("odpt:delay", 0) / 60)
-                delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "定刻"
-                message_line1 = f"[{line_name_jp}]{train_type_jp}{dest_station_jp}行き"
+                delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "(定刻)"
+                message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
                 message_line2 = location_text
                 message_line3 = f"列番:{train_number} {delay_text}"
                 final_message = f"{message_line1}\n{message_line2}\n{message_line3}" if message_line2 else f"{message_line1}\n{message_line3}"
