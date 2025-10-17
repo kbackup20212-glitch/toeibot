@@ -2,7 +2,7 @@ import os
 import requests
 import re
 from chuo_line_specialist import check_chuo_line_train
-from sobu_rapid_specialist import check_sobu_line_train
+#from sobu_rapid_specialist import check_sobu_line_train
 from tokaido_line_specialist import check_tokaido_line_train
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
@@ -745,8 +745,8 @@ def process_irregularities(train_data, line_config):
             is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Tokaido':
             is_irregular, train_type_jp, display_dest_en = check_tokaido_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
-        elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
-            is_irregular, train_type_jp = check_sobu_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        #elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
+            #is_irregular, train_type_jp = check_sobu_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Yamanote':
             is_irregular, train_type_jp = _is_yamanote_line_train_irregular(train, line_config)
         else: # それ以外の路線
