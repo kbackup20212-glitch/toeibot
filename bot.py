@@ -16,6 +16,7 @@ from jr_east_detector import check_jr_east_irregularities
 from tama_monorail_info_detector import check_tama_monorail_info
 from tokyo_metro_detector import check_tokyo_metro_info
 from jr_east_info_detector import check_jr_east_info
+from toei_detector import check_toei_irregularities
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 NOTIFICATION_USER_ID = os.getenv('NOTIFICATION_USER_ID')
@@ -54,26 +55,26 @@ async def periodic_check():
     while not bot.is_closed():
         all_notifications = []
 
-        # --- JR東日本の非定期行先をチェック ---
+        # 1. JR東 非定期
         jr_messages = await bot.loop.run_in_executor(None, check_jr_east_irregularities)
+        if jr_messages: all_notifications.extend(jr_messages)
+
+        # 2. JR東 運行情報
+        jr_info_messages = await bot.loop.run_in_executor(None, check_jr_east_info)
+        if jr_info_messages: all_notifications.extend(jr_info_messages)
         
-        # ▼▼▼▼▼ ここからが最後のテスト ▼▼▼▼▼
-        print(f"--- [FINAL REPORT FROM JR DETECTOR] ---", flush=True)
-        print(f"    -> Number of reports: {len(jr_messages)}", flush=True)
-        if jr_messages:
-            print(f"    -> Report contents: {jr_messages}", flush=True)
-        print("--------------------------------------", flush=True)
-        if jr_messages:
-            all_notifications.extend(jr_messages)
+        # 3. 都営 非定期
+        toei_messages = await bot.loop.run_in_executor(None, check_toei_irregularities)
+        if toei_messages: all_notifications.extend(toei_messages)
 
-        # ★★★ ここから追加 ★★★
-        # --- 多摩モノレールの運行情報をチェック ---
+        # 4. 多摩モノ 運行情報
         tama_message = await bot.loop.run_in_executor(None, check_tama_monorail_info)
-        if tama_message: # メッセージが返ってきたら（変化があったら）リストに追加
-            all_notifications.append(tama_message)
-        # ★★★ ここまで追加 ★★★
+        if tama_message: all_notifications.append(tama_message)
 
-        # 送信すべき通知があれば、まとめて送信
+        # 5. 東京メトロ 運行情報
+        metro_messages = await bot.loop.run_in_executor(None, check_tokyo_metro_info)
+        if metro_messages: all_notifications.extend(metro_messages)
+
         if all_notifications:
             for msg in all_notifications:
                 await channel.send(msg)

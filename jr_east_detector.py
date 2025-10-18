@@ -4,6 +4,7 @@ import re
 from chuo_line_specialist import check_chuo_line_train
 #from sobu_rapid_specialist import check_sobu_line_train
 from tokaido_line_specialist import check_tokaido_line_train
+from boso_specialist import check_boso_train
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:Train"
@@ -57,19 +58,53 @@ STATION_DICT = {
     'Nagano': '長野', 
 
     # --- [追加] JR総武線・房総各線 (主要駅) ---
-    'Kisarazu': '木更津', 'Kimitsu': '君津', 'Tateyama': '館山', 'Chikura': '千倉', 
-    'Awakamogawa': '安房鴨川', 'Oami': '大網', 'Mobara': '茂原', 'KazusaIchinomiya': '上総一ノ宮', 
-    'Ohara': '大原', 'Katsuura': '勝浦', 'Sakura': '佐倉', 'Narita': '成田', 'Sawara': '佐原',  
-    'NaritaAirport': '成田空港', 'Choshi': '銚子', 'KashimaJingu': '鹿島神宮', 'Yoshikawaminami': '吉川美南',
-    'FuchuHommachi': '府中本町', 'HigashiTokorozawa': '東所沢', 
+    'KashimaJingu': '鹿島神宮', 
 
-    #京葉線 (東京～蘇我)
+    #外房線
+    'HonChiba': '本千葉', 'Kamatori': '鎌取', 'Honda': '誉田', 'Toke': '土気', 'Oami':'大網', 
+    'Nagata': '永田', 'Honnou': '本納', 'ShinMobara': '新茂原', 'Mobara': '茂原', 'Yatsumi': '八積',
+    'KazusaIchinoiya': '上総一ノ宮', 'Torami': '東浪見', 'Taito': '太東', 'Chojamachi': '長者町',
+    'Mikado': '三門', 'Nanihana': '浪花', 'Onjuku': '御宿', 'Ubara': '鵜原',
+    'KazusaOkitsu': '上総興津', 'YukawaIsland': '行川アイランド', 'AwaKominato': '安房小湊',
+    'AwaAmatsu': '安房天津', 'AwaKamogawa': '安房鴨川',
+
+    #内房線
+    'Hamano': '浜野', 'Yawatajuku': '八幡宿', 'Goi': '五井', 'Anegasaki': '姉ヶ崎', 'Nagaura': '長浦',
+    'Sodegaura': '袖ケ浦', 'Iwane': '巌根', 'Kisarazu': '木更津', 'Kimitsu': '君津', 'Aohori': '青堀',
+    'Onuki': '大貫', 'Sanukimachi': '佐貫町', 'KazusaMinato': '上総湊', 'Takeoka': '竹岡',
+    'HamaKanaya': '浜金谷', 'Hota': '保田', 'AwaKatsuyama': '安房勝山', 'Iwai': '岩井',
+    'Tomiura': '富浦', 'Nakofunagata': '那古船形', 'Tateyama': '館山', 'Kokonoe': '九重',
+    'Chikura': '千倉', 'Chitose': '千歳', 'Minamihara': '南三原', 'Wadaura': '和田浦',
+    'Emi': '江見', 'Futomi': '太海',
+
+    #総武本線
+    'HigashiChiba': '東千葉', 'Tsuga': '都賀', 'Yotsukaido': '四街道', 'Monoi': '物井',
+    'Sakura': '佐倉', 'MinamiShisui': '南酒々井', 'Enokido': '榎戸', 'Yachimata': '八街',
+    'Hyuga': '日向', 'Naruto': '成東', 'Matsuo': '松尾', 'Yokoshiba': '横芝', 'Iigura': '飯倉',
+    'Yokaichiba': '八日市場', 'Higata': '干潟', 'Asahi': '旭', 'Iioka': '飯岡', 'Kurahashi': '倉橋',
+    'Saruta': '猿田', 'Matsugishi': '松岸', 'Choshi': '銚子',
+
+    #東金線
+    'Fukutawara': '福俵', 'Togane': '東金', 'Gumyo': '求名',
+
+    #京葉線
     'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiohama': '潮見', 'KasaiRinkaikoen': '葛西臨海公園',
     'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
     'ShinNarashino': '新習志野', 'Kaihimmakuhari': '海浜幕張', 'Kemigawahama': '検見川浜',
-    'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと',
+    'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと', 'Soga': '蘇我', 
 
-    # --- [追加] JR京浜東北線・根岸線 ---
+    #武蔵野線
+    'FubashiHoten': '船橋法典', 'Ichikawaono': '市川大野', 'HigashiMatsudo': '東松戸',
+    'ShinYabashira': '新八柱', 'ShimMatsudo': '新松戸', 'MinamiNagareyama': '南流山',
+    'Misato': '三郷', 'ShimMisato': '新三郷', 'Yoshikawa': '吉川', 'YoshikawaMinami': '吉川美南',
+    'KoshigayaLakeTown': '越谷レイクタウン',
+    'MinamiKoshigaya': '南越谷', 'HigashiKawaguchi': '東川口', 'HigashiUrawa': '東浦和',
+    'MinamiUrawa': '南浦和', 'Musashiurawa': '武蔵浦和', 'Nishiurawa': '西浦和',
+    'KitaAsaka': '北朝霞', 'Niiza': '新座', 'HigashiTokorozawa': '東所沢',
+    'ShinAkitsu': '新秋津', 'ShinKodaira': '新小平', 'NishiKokubunji': '西国分寺',
+    'KitaFuchu': '北府中',
+
+    #京浜東北根岸線
     'Omiya': '大宮', 'SaitamaShintoshin': 'さいたま新都心', 'Yono': '与野', 'KitaUrawa': '北浦和', 
     'Urawa': '浦和', 'MinamiUrawa': '南浦和', 'Warabi': '蕨', 'NishiKawaguchi': '西川口', 
     'Kawaguchi': '川口', 'Akabane': '赤羽', 'HigashiJujo': '東十条', 'Oji': '王子', 
@@ -79,7 +114,7 @@ STATION_DICT = {
     'Negishi': '根岸', 'Isogo': '磯子', 'ShinSugita': '新杉田', 'Yokodai': '洋光台', 
     'Konandai': '港南台', 'Hongodai': '本郷台', 'Ofuna': '大船',
 
-    # --- [追加] JR中央・総武線各駅停車 ---
+    #中央・総武線各駅停車
     'HigashiNakano': '東中野', 'Okubo': '大久保', 'Yoyogi': '代々木', 'Sendagaya': '千駄ケ谷',
     'Shinanomachi': '信濃町', 'Ichigaya': '市ケ谷', 'Iidabashi': '飯田橋', 'Suidobashi': '水道橋', 
     'Akihabara': '秋葉原', 'Asakusabashi': '浅草橋', 'Ryogoku': '両国', 'Kinshicho': '錦糸町', 
@@ -215,6 +250,12 @@ STATION_DICT = {
     'HigashiFussa': '東福生', 'Hakonegasaki': '箱根ケ崎', 'HigashiHanno': '東飯能',
     'Komagawa': '高麗川', 'MusashiTakahagi': '武蔵高萩', 'Kasahata': '笠幡', 'Matoba': '的場',
     'NishiKawagoe': '西川越', 
+
+    #千代田線・小田急線主要駅
+    'Hakoneyumoto': '箱根湯本', 'ShinMatsuda': '新松田', 'Hadano': '秦野', 'Isehara': '伊勢原', 'Ebina': '海老名',
+    'Sagamiono': '相模大野', 'Shinyurigaoka': '新百合ヶ丘', 'Karakiida': '唐木田', 'Mukogaokayuen': '向ケ丘遊園',
+    'Seijogakuenmae': '成城学園前', 'YoyogiUehara': '代々木上原', 'YoyogiKoen': '代々木公園', 'MeijiJingumae': '明治神宮前',
+    'Omotesando': '表参道', 'Kasumigaseki': '霞ケ関', 'Otemachi': '大手町', 'Yushima': '湯島',  
 
 }
 
@@ -707,8 +748,28 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Local', 'Haijima'),
             ('odpt.TrainType:JR-East.Local', 'Hachioji'), 
             }
-    }
+    },
+    { #常磐緩行線
+        "id": "odpt.Railway:JR-East.JobanLocal",
+        "name": "常磐緩行線",
+        "regular_trips": {
+           ('odpt.TrainType:JR-East.Local', 'YoyogiUehara'),
+           ('odpt.TrainType:JR-East.Local', 'Karakida'),
+           ('odpt.TrainType:JR-East.Local', 'Mukogaokayuen'),
+           ('odpt.TrainType:JR-East.Local', 'Seijogakuenmae'),
+           ('odpt.TrainType:JR-East.Local', 'Kitasenju'),
+           ('odpt.TrainType:JR-East.Local', 'Isehara'),
+           ('odpt.TrainType:JR-East.Local', 'Kasumigaseki'),
+           ('odpt.TrainType:JR-East.Local', 'Meijijinguumae'),
+           ('odpt.TrainType:JR-East.Local', 'Honatsugi'),
+           ('odpt.TrainType:JR-East.Local', 'Matsudo'),
+           ('odpt.TrainType:JR-East.Local', 'Kashiwa'),
+           ('odpt.TrainType:JR-East.Local', 'Abiko'),
+           ('odpt.TrainType:JR-East.Local', 'Toride'),
+        }
+    },
 ]
+
 notified_trains = set()
 
 def fetch_train_data(line_config):
@@ -766,6 +827,10 @@ def process_irregularities(train_data, line_config):
             is_irregular, train_type_jp, display_dest_en = check_tokaido_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         #elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
             #is_irregular, train_type_jp = check_sobu_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        elif line_config['id'] == 'odpt.Railway:JR-East.Keiyo':
+            is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
+            is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Yamanote':
             is_irregular, train_type_jp = _is_yamanote_line_train_irregular(train, line_config)
         else: # それ以外の路線
