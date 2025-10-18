@@ -86,6 +86,14 @@ JR_LINE_PREDICTION_DATA = {
             '磯子', '大船'
         }
     },
+        "odpt.Railway:JR-East.Narita": {
+        "name": "成田線",
+        "stations_main": ['千葉方面', '佐倉', '酒々井', '成田', '久住', '滑河', '下総神崎', '大戸', '佐原', '香取', '水郷', '小見川', '笹川', '下総橘', '下総豊里', '椎柴', '松岸', '銚子'], 
+        "stations_abiko": ['我孫子・常磐線方面', '我孫子', '東我孫子', '湖北', '新木', '布佐', '木下', '小林', '安食', '下総松崎', '成田'],
+        "stations_airport": ['成田', '空港第２ビル', '成田空港'], # 空港支線
+        "turning_stations": {'我孫子', '湖北', '布佐', '木下', '安食', '成田','佐原','銚子'}, # 折り返し可能駅
+        "hubs": {'成田', '銚子'} # 主要な接続駅
+    },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
     "odpt.Railway:JR-East.ChuoSobuLocal": {"name": "中央・総武線各駅停車"},
@@ -174,6 +182,30 @@ def check_jr_east_info():
                             print(f"--- [JR INFO] 埼京線の未知の路線での事象のため、予測をスキップします ---", flush=True)
                             skip_prediction = True
                         # ### ここまで ###
+                    elif line_id == "odpt.Railway:JR-East.Narita":
+                        match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
+                        match_at = re.search(r'(.+?)駅での', status_to_check)
+                        stop_station = ""
+                        if match_between: stop_station = match_between.group(1) # 区間なら開始駅で判断
+                        elif match_at: stop_station = match_at.group(1)
+
+                        if stop_station:
+                            if stop_station in line_data.get("stations_main", []):
+                                station_list = line_data["stations_main"]
+                                print(f"--- [JR INFO] 成田線(本線)で事象発生と判断 ---", flush=True)
+                            elif stop_station in line_data.get("stations_abiko", []):
+                                station_list = line_data["stations_abiko"]
+                                print(f"--- [JR INFO] 成田線(我孫子支線)で事象発生と判断 ---", flush=True)
+                            elif stop_station in line_data.get("stations_airport", []):
+                                print(f"--- [JR INFO] 成田線(空港支線)での事象のため、予測をスキップ ---", flush=True)
+                                skip_prediction = True
+                            else: # どのリストにもなければ予測不能
+                                skip_prediction = True
+                        else: # 駅名が特定できなければ予測不能
+                            skip_prediction = True
+                    else:
+                        # 他の路線は通常のリストを使用
+                        station_list = line_data.get("stations", [])
                     
                     # 思考放棄フラグが立っていなければ、予測処理に進む
                     if not skip_prediction:

@@ -18,7 +18,7 @@ CHUO_LOCAL_REGULAR_DESTINATIONS = {
     "各停": {'Tokyo', 'MusashiKoganei','Kokubunji', 'Tachikawa','Toyoda','Hachioji','Takao','Otsuki','Ome'},
     "普通むさしの号": {'Hachioji', 'Omiya'},
     "普通": {'Tachikawa','Takao', 'Otsuki','Kawaguchiko',
-           'Kofu', 'Kobuchizawa', 'Matsumoto','Nirasaki','Enzan'},
+           'Kofu', 'Kobuchizawa', 'Matsumoto','Nirasaki','Enzan', 'Nagano'},
 }
 
 # --- この専門家だけが使う、特殊な道具 ---
@@ -39,10 +39,10 @@ def _get_chuo_limited_express_nickname(train_number_str):
     if not match: return "特急"
     num = int(match.group(0))
     if (8190 <= num <= 8199) or (9190 <= num <= 9199): return "特急富士回遊"
-    if (9094 <= num <= 9096): return "特急アルプス"
+    if num in [9095, 9096]: return "特急アルプス"
     if (9040 <= num <= 9049): return "特急新宿さざなみ"
     if (9050 <= num <= 9059): return "特急新宿わかしお"
-    if (1 <= num <= 99) or (5001 <= num <= 5099) or (8001 <= num <= 8099) or (9001 <= num <= 9039): return "特急あずさ"
+    if (1 <= num <= 99) or (5001 <= num <= 5099) or (8070 <= num <= 8099) or (9070 <= num <= 9094): return "特急あずさ"
     if (3100 <= num <= 3199) or (5100 <= num <= 5199) or (8100 <= num <= 8189) or (9100 <= num <= 9189): return "特急かいじ"
     return "特急"
 

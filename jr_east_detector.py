@@ -244,7 +244,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # ▼▼▼ 2. 中央線快速を監視対象に追加 ▼▼▼
         "id": "odpt.Railway:JR-East.ChuoRapid",
-        "name": "中央線快速",
+        "name": "中央快速線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.Rapid', 'Mitaka'),
@@ -648,8 +648,10 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Local', 'Kaihimmakuhari'),
             ('odpt.TrainType:JR-East.Local', 'Soga'),
             ('odpt.TrainType:JR-East.Local', 'KazusaIchinomiya'),
+            ('odpt.TrainType:JR-East.Local', 'Kimitsu'),
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.Rapid', 'Soga'),
+            ('odpt.TrainType:JR-East.Rapid', 'Kimitsu'),
             ('odpt.TrainType:JR-East.Rapid', 'KazusaIchinomiya'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'Tokyo'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'KazusaIchinomiya'),
@@ -692,6 +694,8 @@ JR_LINES_TO_MONITOR = [
                 ('odpt.TrainType:JR-East.Local', 'MusashiUrawa'),
                 ('odpt.TrainType:JR-East.Local', 'Omiya'),
                 ('odpt.TrainType:JR-East.Local', 'Kawagoe'),
+                ('odpt.TrainType:JR-East.Rapid', 'Kawagoe'),
+                ('odpt.TrainType:JR-East.CommuterRapid', 'Kawagoe'),
             }
     },
     { # 川越線(川越～高麗川)

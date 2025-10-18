@@ -22,25 +22,26 @@ def get_tokaido_limited_express_nickname(train_number_str):
     except (ValueError, IndexError):
         # もし変換に失敗したら、デフォルトの「特急」を返す
         return "特急"
+    
 
-    if (3020 <= num <= 3069) or (4020 <= num <= 4069) or (num in [8001, 8002]) or \
-       (8005 <= num <= 8014) or (8016 <= num <= 8040) or (8043 <= num <= 8065) or \
-    (8070 <= num <= 8093) or (9020 <= num <= 9090):
-        return "特急踊り子"
-    elif num in [3001, 3002, 8003, 8004, 8015]:
+    if num in [3001, 3002, 8003, 8004, 8015]:
         return "特急ｻﾌｨｰﾙ踊り子"
-    elif (3070 <= num <= 3099) or (num == 6089):
-        return "特急湘南"
+    elif num in [8086, 8087]:
+        return "特急鎌倉"
     elif num in [5031, 5032, 9011, 9012, 8041, 8042]:
         return "寝台特急ｻﾝﾗｲｽﾞ"
     elif 2001 <= num <= 2100:
         return "特急NEX"
-    elif 8066 <= num <= 8069:
-        return "特急鎌倉"
+    elif (3070 <= num <= 3099) or (num == 6089):
+        return "特急湘南"
     elif (51 <= num <= 99) or (9091 <= num <= 9099):
         return "特急ときわ"
     elif (1 <= num <= 50) or (8094 <= num <= 8099):
         return "特急ひたち"
+    elif (3020 <= num <= 3069) or (4020 <= num <= 4069) or (num in [8001, 8002]) or \
+       (8005 <= num <= 8014) or (8016 <= num <= 8040) or (8043 <= num <= 8065) or \
+    (8070 <= num <= 8093) or (9020 <= num <= 9090):
+        return "特急踊り子"     
     else:
         return "特急"
 
