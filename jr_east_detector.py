@@ -21,7 +21,7 @@ STATION_DICT = {
     'Shimbashi': '新橋', 'Hamamatsucho': '浜松町', 'Tamachi': '田町',
     'TakanawaGateway': '高輪ゲートウェイ', 'Shinagawa': '品川',
 
-    # --- [追加] JR中央線 ---
+    #中央快速線(大月以東)
     'Tokyo': '東京', 'Kanda': '神田', 'Ochanomizu': '御茶ノ水', 'Yotsuya': '四ツ谷', 
     'Shinjuku': '新宿', 'Nakano': '中野', 'Koenji': '高円寺', 'Asagaya': '阿佐ヶ谷', 
     'Ogikubo': '荻窪', 'NishiOgikubo': '西荻窪', 'Kichijoji': '吉祥寺', 'Mitaka': '三鷹', 
@@ -32,7 +32,7 @@ STATION_DICT = {
     'Uenohara': '上野原', 'Shiotsu': '四方津', 'Yanagawa': '梁川', 'Torisawa': '鳥沢', 
     'Saruhashi': '猿橋', 'Otsuki': '大月',
 
-    # --- [追加] JR青梅線・五日市線 ---
+    #青梅五日市線
     'NishiTachikawa': '西立川', 'HigashiNakagami': '東中神', 'Nakagami': '中神', 
     'Akishima': '昭島', 'Haijima': '拝島', 'Ushihama': '牛浜', 'Fussa': '福生', 
     'Hamura': '羽村', 'Ozaku': '小作', 'Kabe': '河辺', 'HigashiOme': '東青梅', 
@@ -43,22 +43,34 @@ STATION_DICT = {
     'Akigawa': '秋川', 'MusashiHikida': '武蔵引田', 'MusashiMasuko': '武蔵増戸', 
     'MusashiItsukaichi': '武蔵五日市',
 
-    # --- [追加] 富士急行線 ---
+    #富士急行線(主要駅)
     'Tsurushi': '都留市', 'Tsurubunkadaigakumae': '都留文科大学前', 'Gekkouji': '月江寺', 
-    'Shimoyoshida': '下吉田','Fujisan': '富士山', 'FujikyuHighland': '富士急ハイランド', 
+    'Shimoyoshida': '下吉田', 'Fujisan': '富士山', 'FujikyuHighland': '富士急ハイランド', 
     'Kawaguchiko': '河口湖',
 
-    # --- [追加] JR中央本線・篠ノ井線・大糸線 (主要駅) ---
+    #中央本線
     'Hatsukari' : '初狩', 'Sasago': '笹子', 'KaiYamato': '甲斐大和', 'KatsunumaBudokyo': '勝沼ぶどう郷',
     'Enzan': '塩山', 'HigashiYamanashi': '東山梨', 'Yamanashishi': '山梨市', 'Kasugaicho': '春日居町',
-    'IsaawaOnsen': '石和温泉', 'Sakaori': '酒折', 'Kofu': '甲府', 'Ryuo': '竜王', 
-    'Nirasaki': '韮崎', 'Kobuchizawa': '小淵沢', 'Chino': '茅野', 
-    'KamiSuwa': '上諏訪', 'ShimoSuwa': '下諏訪', 'Okaya': '岡谷', 'Shiojiri': '塩尻', 
-    'Matsumoto': '松本', 'ShinanoOmachi': '信濃大町', 'Hakuba': '白馬', 'MinamiOtari': '南小谷',
-    'Nagano': '長野', 
+    'IsaawaOnsen': '石和温泉', 'Sakaori': '酒折', 'Kofu': '甲府', 'Ryuo': '竜王', 'Nirasaki': '韮崎',  
+    'Shinpu': '新府', 'Anayama': '穴山', 'Hinoharu': '日野春', 'Nagasaka': '長坂', 'Kobuchizawa': '小淵沢',
+    'Shinanosakai': '信濃境', 'Fujimi': '富士見', 'Suzurannosato': 'すずらんの里', 'Aoyagi': '青柳', 
+    'Chino': '茅野', 'KamiSuwa': '上諏訪', 'ShimoSuwa': '下諏訪', 'Okaya': '岡谷', 'Kawagishi': '川岸',
+    'Tatsuno': '辰野', 'ShinanoKawashima': '信濃川島', 'Ono': '小野', 'Midoriko': 'みどり湖', 
+    'Shiojiri': '塩尻', 'Hirooka': '広丘', 'Murai': '村井', 'Hirata': '平田', 
+    'MinamiMatsumoto': '南松本', 'Matsumoto': '松本',
 
-    # --- [追加] JR総武線・房総各線 (主要駅) ---
-    'KashimaJingu': '鹿島神宮', 
+    #大糸線(主要駅)
+    'ShinanoOmachi': '信濃大町', 'Hakuba': '白馬', 'MinamiOtari': '南小谷',
+
+    #篠ノ井線
+    'Tazawa': '田沢', 'Akashina': '明科', 'Saijo': '西条', 'Sakakita': '坂北', 'Hijirikogen': '聖高原',
+    'Kamuriki': '冠着', 'Obasute': '姨捨', 'Inariyama': '稲荷山', 'Shinonoi': '篠ノ井',
+    'Imai': '今井', 'Kawanakajima': '川中島', 'Amori': '安茂里', 'Nagano': '長野',
+    
+
+    #鹿島線
+    'KashimaSoccerStudium': '鹿島サッカースタジアム', 'KashimaJingu': '鹿島神宮', 'Nobukata': '延方', 
+    'Itako': '潮来', 'Junikyo': '十二橋', 'Katori': '香取',
 
     #外房線
     'HonChiba': '本千葉', 'Kamatori': '鎌取', 'Honda': '誉田', 'Toke': '土気', 'Oami':'大網', 
@@ -137,7 +149,7 @@ STATION_DICT = {
     'FunabashiNichidaimae': '船橋日大前', 'YachiyoMidorigaoka': '八千代緑が丘', 
     'YachiyoChuo': '八千代中央', 'Murakami': '村上', 'ToyoKatsutadai': '東葉勝田台',
 
-    # --- [追加] JR南武線 ---
+    #南武線
     'Tachikawa': '立川', 'NishiKunitachi': '西国立', 'Yagawa': '矢川', 'Yaho': '谷保', 
     'Nishifu': '西府', 'Bubaigawara': '分倍河原', 'Fuchuhommachi': '府中本町', 
     'MinamiTama': '南多摩', 'Inaginaganuma': '稲城長沼', 'Yanokuchi': '矢野口', 
@@ -147,7 +159,7 @@ STATION_DICT = {
     'Hirama': '平間', 'Kashimada': '鹿島田', 'Yako': '矢向', 'Shitte': '尻手', 
     'Kawasaki': '川崎',
 
-    # --- [追加] JR横浜線 ---
+    #横浜線
     'Hachioji': '八王子', 'Katakura': '片倉', 'HachiojiMinamino': '八王子みなみ野', 
     'Aihara': '相原', 'Hashimoto': '橋本', 'Sagamihara': '相模原', 'Yabe': '矢部', 
     'Fuchinobe': '淵野辺', 'Kobeshi': '古淵', 'Machida': '町田', 'Naruse': '成瀬', 
@@ -170,7 +182,7 @@ STATION_DICT = {
     'Nogi': '野木', 'Mamada': '間々田', 'Oyama': '小山', 'Koga': '古河', 'Kurihashi': '栗橋', 'HigashiWashinomiya': '東鷲宮',
     'Kuki': '久喜', 'Shiraoka': '白岡', 'Hasuda': '蓮田', 'HigashiOmiya': '東大宮', 'Toro': '土呂',
     
-    # --- [追加] JR宇都宮線 (北部) ---
+    #宇都宮線
     'Okamoto': '岡本', 'Hoshakuji': '宝積寺', 'Ujiie': '氏家', 'Kamasusaka': '蒲須坂',
     'Kataoka': '片岡', 'Yaita': '矢板', 'Nozaki': '野崎', 'NishiNasuno': '西那須野',
     'Nasushiobara': '那須塩原', 'Kuroiso': '黒磯',
@@ -179,36 +191,34 @@ STATION_DICT = {
     'Karasuyama': '烏山', 'Ogane': '大金', 'Konoyama': '鴻野山', 'Niita': '仁井田',
     'ShimotsukeHanaoka': '下野花岡', 
 
-    # --- [追加] JR日光線 ---
+    #日光線
     'Tsuruta': '鶴田', 'Kanuma': '鹿沼', 'Fubasami': '文挟', 'ShimotsukeOsawa': '下野大沢',
     'Imaichi': '今市', 'Nikko': '日光',
 
-    # --- [追加] JR烏山線 ---
+    #烏山線
     'ShimotsukeHanaoka': '下野花岡', 'Niita': '仁井田', 'Konoyama': '鴻野山',
     'Ogane': '大金', 'Karasuyama': '烏山',
 
     # 湘南新宿ライン・横須賀線 (大宮～久里浜)
-    # Omiya, Akabane, Ikebukuro, Shinjuku, Shibuya, Ebisuは他路線で追加済み
-    'NishiOi': '西大井', 'MusashiKosugi': '武蔵小杉', 'ShinKawasaki': '新川崎', 'Yokohama': '横浜', 'Hodogaya': '保土ケ谷',
-    'HigashiTotsuka': '東戸塚', 'Totsuka': '戸塚', 'Ofuna': '大船', 'KitaKamakura': '北鎌倉', 'Kamakura': '鎌倉',
-    'Zushi': '逗子', 'HigashiZushi': '東逗子', 'Taura': '田浦', 'Yokosuka': '横須賀', 'Kinugasa': '衣笠', 'Kurihama': '久里浜',
+    'NishiOi': '西大井', 'MusashiKosugi': '武蔵小杉', 'ShinKawasaki': '新川崎', 'Yokohama': '横浜', 
+    'Hodogaya': '保土ケ谷', 'HigashiTotsuka': '東戸塚', 'Totsuka': '戸塚', 'Ofuna': '大船', 
+    'KitaKamakura': '北鎌倉', 'Kamakura': '鎌倉', 'Zushi': '逗子', 'HigashiZushi': '東逗子', 
+    'Taura': '田浦', 'Yokosuka': '横須賀', 'Kinugasa': '衣笠', 'Kurihama': '久里浜',
 
     # 東海道線 (横浜～沼津、以遠主要駅)
-    # Yokohama, Totsuka, Ofunaは上記にあり
-    'Fujisawa': '藤沢', 'Tsujido': '辻堂', 'Chigasaki': '茅ヶ崎', 'Hiratsuka': '平塚', 'Oiso': '大磯', 'Ninomiya': '二宮',
-    'Kozu': '国府津', 'Kamonomiya': '鴨宮', 'Odawara': '小田原', 'Hayakawa': '早川', 'Nebukawa': '根府川', 'Manazuru': '真鶴',
-    'Yugawara': '湯河原', 'Atami': '熱海', 'Kannami': '函南', 'Mishima': '三島', 'Numazu': '沼津', 'Shizuoka': '静岡',
-    'Hamamatsu': '浜松', 'Toyohashi': '豊橋', 'Nagoya': '名古屋', 'Gifu': '岐阜', 'Ogaki': '大垣', 'Maibara': '米原',
-    'Osaka': '大阪', 'ShinOsaka': '新大阪', 'Himeji': '姫路', 'Okayama': '岡山', 'Takamatsu': '高松', 'Kotohira': '琴平',
-    'Izumoshi': '出雲市',
+    'Fujisawa': '藤沢', 'Tsujido': '辻堂', 'Chigasaki': '茅ヶ崎', 'Hiratsuka': '平塚', 'Oiso': '大磯',
+    'Ninomiya': '二宮', 'Kozu': '国府津', 'Kamonomiya': '鴨宮', 'Odawara': '小田原',
+    'Hayakawa': '早川', 'Nebukawa': '根府川', 'Manazuru': '真鶴', 'Yugawara': '湯河原', 
+    'Atami': '熱海', 'Kannami': '函南', 'Mishima': '三島', 'Numazu': '沼津', 'Shizuoka': '静岡',
+    'Hamamatsu': '浜松', 'Toyohashi': '豊橋', 'Nagoya': '名古屋', 'Gifu': '岐阜', 'Ogaki': '大垣', 
+    'Maibara': '米原', 'Osaka': '大阪', 'ShinOsaka': '新大阪', 'Himeji': '姫路', 'Okayama': '岡山', 
+    'Takamatsu': '高松', 'Kotohira': '琴平', 'Izumoshi': '出雲市',
 
-    # 伊東線 (熱海～伊東)・伊豆箱根鉄道(主要駅)
-    # Atamiは上記にあり
+    # 伊東線・伊豆箱根鉄道(主要駅)
     'Kinomiya': '来宮', 'IzuTaga': '伊豆多賀', 'Ajiro': '網代', 'Usami': '宇佐美', 'Ito': '伊東',
     'IzukyuShimoda': '伊豆急下田','IzuKogen': '伊豆高原', 'Daiba': '大場','Shuzenji': '修善寺',
 
-    # --- [追加] JR常磐線 ---
-    # 上野～大津港 (全駅)
+    #常磐線 (上野～大津港、以遠仙台まで主要駅)
     'Ueno': '上野', 'Nippori': '日暮里', 'Mikawashima': '三河島', 'MinamiSenju': '南千住',
     'KitaSenju': '北千住', 'Ayase': '綾瀬', 'Kameari': '亀有', 'Kanamachi':'金町',
     'Matsudo': '松戸', 'KitaMatsudo': '北松戸', 'Mabashi': '馬橋', 'ShinMatsudo': '新松戸',
@@ -221,8 +231,6 @@ STATION_DICT = {
     'Tokai': '東海', 'Omika': '大甕', 'HitachiTaga': '常陸多賀', 'Hitachi': '日立',
     'Ogitsu': '小木津', 'Ju-O': '十王', 'Takahagi': '高萩', 'MinamiNakago': '南中郷',
     'Isohara': '磯原', 'Otsuko': '大津港',
-
-    # 大津港～仙台 (主要駅)
     'Nakoso': '勿来', 'Ueda': '植田', 'Izumi': '泉', 'Yumoto': '湯本', 'Iwaki': 'いわき',
     'Hirono': '広野', 'Tomioka': '富岡', 'Okuma': '大熊', 'Futaba': '双葉', 'Namie': '浪江',
     'Odaka': '小高', 'Haranomachi': '原ノ町', 'Soma': '相馬', 'Shinchi': '新地',
@@ -252,9 +260,10 @@ STATION_DICT = {
     'NishiKawagoe': '西川越', 
 
     #千代田線・小田急線主要駅
-    'Hakoneyumoto': '箱根湯本', 'ShinMatsuda': '新松田', 'Hadano': '秦野', 'Isehara': '伊勢原', 'Ebina': '海老名',
-    'Sagamiono': '相模大野', 'Shinyurigaoka': '新百合ヶ丘', 'Karakiida': '唐木田', 'Mukogaokayuen': '向ケ丘遊園',
-    'Seijogakuenmae': '成城学園前', 'YoyogiUehara': '代々木上原', 'YoyogiKoen': '代々木公園', 'MeijiJingumae': '明治神宮前',
+    'Hakoneyumoto': '箱根湯本', 'ShinMatsuda': '新松田', 'Hadano': '秦野', 'Isehara': '伊勢原', 
+    'HonAtsugi':'本厚木', 'Ebina': '海老名', 'SagamiOno': '相模大野', 'Shinyurigaoka': '新百合ヶ丘', 
+    'Karakiida': '唐木田', 'Mukogaokayuen': '向ケ丘遊園', 'Seijogakuenmae': '成城学園前', 
+    'YoyogiUehara': '代々木上原', 'YoyogiKoen': '代々木公園', 'MeijiJingumae': '明治神宮前',
     'Omotesando': '表参道', 'Kasumigaseki': '霞ケ関', 'Otemachi': '大手町', 'Yushima': '湯島',  
 
 }
@@ -757,11 +766,11 @@ JR_LINES_TO_MONITOR = [
            ('odpt.TrainType:JR-East.Local', 'Karakida'),
            ('odpt.TrainType:JR-East.Local', 'Mukogaokayuen'),
            ('odpt.TrainType:JR-East.Local', 'Seijogakuenmae'),
-           ('odpt.TrainType:JR-East.Local', 'Kitasenju'),
+           ('odpt.TrainType:JR-East.Local', 'KitaSenju'),
            ('odpt.TrainType:JR-East.Local', 'Isehara'),
            ('odpt.TrainType:JR-East.Local', 'Kasumigaseki'),
            ('odpt.TrainType:JR-East.Local', 'Meijijinguumae'),
-           ('odpt.TrainType:JR-East.Local', 'Honatsugi'),
+           ('odpt.TrainType:JR-East.Local', 'HonAtsugi'),
            ('odpt.TrainType:JR-East.Local', 'Matsudo'),
            ('odpt.TrainType:JR-East.Local', 'Kashiwa'),
            ('odpt.TrainType:JR-East.Local', 'Abiko'),
@@ -860,8 +869,10 @@ def process_irregularities(train_data, line_config):
                 delay_minutes = round(train.get("odpt:delay", 0) / 60)
                 delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "(定刻)"
                 message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
-                message_line2 = location_text
-                message_line3 = f"列番:{train_number} {delay_text}"
+                # location_textが存在し、かつ遅延がある場合のみ遅延情報を追記
+                location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text
+                message_line2 = location_text_with_delay
+                message_line3 = f"列番:{train_number}" # 列番のみ                
                 final_message = f"{message_line1}\n{message_line2}\n{message_line3}" if message_line2 else f"{message_line1}\n{message_line3}"
                 irregular_messages.append(final_message)
                 notified_trains.add(notification_id)

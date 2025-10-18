@@ -1,6 +1,7 @@
 import os
 import requests
 import re # 必要に応じて
+from typing import Dict, Any, List, Optional
 
 # .envから都営地下鉄用のトークンを読み込む
 API_TOKEN = os.getenv('ODPT_TOKEN_TOEI')
@@ -100,6 +101,16 @@ TRAIN_TYPE_NAMES = {
     'odpt.TrainType:Toei.CommuterLimitedExpress': '通勤特急',
 }
 
+TRAIN_OWNER_NAMES: Dict[str, str] = {
+    "odpt.Operator:Toei": "都営車",
+    "odpt.Operator:Keio": "京王車",
+    "odpt.Operator:Keikyu": "京急車",
+    "odpt.Operator:Keisei": "京成車",
+    "odpt.Operator:Hokuso": "北総車", 
+    "odpt.Operator:Shibayama": "芝山車", 
+    "odpt.Operator:Tokyu": "東急車",
+    "odpt.Operator:Sotetsu": "相鉄車",
+}
 # --- 監視対象リスト（都営地下鉄） ---
 TOEI_LINES_TO_MONITOR = [
     {
@@ -222,10 +233,13 @@ def process_toei_irregularities(train_data, line_config):
     allowed_trips = line_config.get("regular_trips", set())
 
     for train in train_data:
-        train_type_id = train.get("odpt:trainType")
-        dest_station_id_list = train.get("odpt:destinationStation")
-        train_number = train.get("odpt:trainNumber") # 都営にも列車番号はあるはず
+        train_type_id: Optional[str] = train.get("odpt:trainType")
+        dest_station_id_list: Optional[List[str]] = train.get("odpt:destinationStation")
+        train_number: Optional[str] = train.get("odpt:trainNumber")
+        
+        # 必要な情報が欠けていたらスキップ
         if not all([train_type_id, dest_station_id_list, train_number]): continue
+        if train_number is None: continue
 
         dest_station_en = dest_station_id_list[-1].split('.')[-1].strip()
         current_trip = (train_type_id, dest_station_en)
@@ -258,9 +272,17 @@ def process_toei_irregularities(train_data, line_config):
                     delay_minutes = round(train.get("odpt:delay", 0) / 60)
                     delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "定刻"
                     
-                    message_line1 = f"[{line_name_jp}]{train_type_jp}{dest_station_jp}行き"
-                    message_line2 = location_text
-                    message_line3 = f"列番:{train_number} {delay_text}" # 都営の列車番号形式に合わせる
+                    owner_id: Optional[str] = train.get("odpt:trainOwner")
+                    owner_text: str = ""
+                    if owner_id:
+                        owner_name: str = TRAIN_OWNER_NAMES.get(owner_id, "")
+                        if owner_name:
+                             owner_text = f" ({owner_name})" # 括弧付きで表示名を取得
+                    
+                    message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
+                    location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text
+                    message_line2 = location_text_with_delay
+                    message_line3 = f"列番:{train_number} ({owner_text})" 
                     final_message = f"{message_line1}\n{message_line2}\n{message_line3}" if message_line2 else f"{message_line1}\n{message_line3}"
                     
                     irregular_messages.append(final_message)

@@ -1,6 +1,7 @@
 import os
 import requests
 import re
+from typing import Dict, Any, List, Optional
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:TrainInformation"
@@ -107,174 +108,166 @@ def _find_nearest_turning_station(station_list, turning_stations, start_index, d
     current_index = start_index
     while 0 <= current_index < len(station_list):
         station_name = station_list[current_index]
-        if station_name in turning_stations:
-            return station_name
+        if station_name in turning_stations: return station_name
         current_index += direction
     return None
-
 def _find_nearest_hub(station_list, hubs, start_index, direction):
-    """指定された方向に、最も近いハブ駅を探す"""
     current_index = start_index
     while 0 <= current_index < len(station_list):
         station_name = station_list[current_index]
-        if station_name in hubs:
-            return station_name
+        if station_name in hubs: return station_name
         current_index += direction
-    return None # 見つからなければNone
+    return None
 
-# --- メイン関数 (共通ロジックに改造) ---
-def check_jr_east_info():
+# --- メイン関数 (構造修正・最終完成版) ---
+def check_jr_east_info() -> Optional[List[str]]:
     global last_jr_east_statuses
-    notification_messages = []
-
+    notification_messages: List[str] = []
     try:
         params = {"odpt:operator": "odpt.Operator:jre-is", "acl:consumerKey": API_TOKEN}
         response = requests.get(API_ENDPOINT, params=params, timeout=30)
         response.raise_for_status()
-        info_data = response.json()
+        try:
+            info_data: Any = response.json()
+        except requests.exceptions.JSONDecodeError as json_err:
+            print(f"--- [JR INFO] ERROR: Failed to decode API response as JSON. Error: {json_err}", flush=True)
+            return None
+        if not isinstance(info_data, list):
+             print(f"--- [JR INFO] ERROR: API response is not a list, but {type(info_data)} ---", flush=True)
+             return None
 
-        # ▼▼▼ 1. 全ピースをテーブルに並べる (データの前処理) ▼▼▼
-        info_dict = {item['odpt:railway']: item for item in info_data if 'odpt:railway' in item}
+        info_dict: Dict[str, Dict[str, Any]] = {}
+        for item in info_data:
+             if isinstance(item, dict) and \
+                item.get("odpt:railway") and \
+                isinstance(item.get("odpt:trainInformationText"), dict) and \
+                item.get("odpt:trainInformationText", {}).get("ja"):
+                 line_id: str = item["odpt:railway"]
+                 info_dict[line_id] = item
+             else:
+                 print(f"--- [JR INFO] WARNING: Skipping unexpected/incomplete item in API response: {item} ---", flush=True)
 
-        # ▼▼▼ 2. 路線ごとに処理 (テーブルのピースを1枚ずつ見る) ▼▼▼
+        # === ここからが正しい処理ループ ===
         for line_id, line_info in info_dict.items():
-            current_status = line_info.get("odpt:trainInformationText", {}).get("ja")
-            if not current_status: continue
+            current_status: str = line_info["odpt:trainInformationText"]["ja"]
 
             if current_status != last_jr_east_statuses.get(line_id):
                 last_jr_east_statuses[line_id] = current_status
-                
                 prediction_made = False
+                skip_prediction = False
 
-                # もし、その路線のカルテがあり、かつ「運転見合わせ」なら、高度な手術を行う
+                # ▼▼▼ 予測処理ブロック ▼▼▼
                 if line_id in JR_LINE_PREDICTION_DATA and "運転を見合わせています" in current_status:
-                    
+                    # このブロックで初めて line_data などを定義する
                     line_data = JR_LINE_PREDICTION_DATA[line_id]
-                    line_name_jp = line_data["name"]
-                    station_list = line_data["stations"]
-                    turning_stations = line_data["turning_stations"]
-                    if not station_list: continue
-
-                    # ▼▼▼ 3. ここからが新しい連携ロジック ▼▼▼
-                    status_to_check = current_status # デフォルトでは、自路線の情報をチェック
-                    forced_station = None
-                    skip_prediction = False
+                    line_name_jp = line_data.get("name", line_id)
+                    # 成田線は支線があるので、station_listの決定が特殊
+                    if line_id == "odpt.Railway:JR-East.Narita":
+                        station_list = [] # まず空で初期化
+                        match_between = re.search(r'(.+?)～(.+?)駅間での', current_status)
+                        match_at = re.search(r'(.+?)駅での', current_status)
+                        stop_station = ""
+                        if match_between: stop_station = match_between.group(1)
+                        elif match_at: stop_station = match_at.group(1)
+                        if stop_station:
+                            if stop_station in line_data.get("stations_main", []): station_list = line_data["stations_main"]
+                            elif stop_station in line_data.get("stations_abiko", []): station_list = line_data["stations_abiko"]
+                            elif stop_station in line_data.get("stations_airport", []): skip_prediction = True
+                            else: skip_prediction = True
+                        else: skip_prediction = True
+                    else: # 他の路線はシンプル
+                        station_list = line_data.get("stations", [])
                     
-                    # もし中央線快速で、原因が曖昧な場合
-                    if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status:
-                        sobu_info = info_dict.get("odpt.Railway:JR-East.ChuoSobuLocal", {})
-                        sobu_status = sobu_info.get("odpt:trainInformationText", {}).get("ja")
-                        if sobu_status: status_to_check = sobu_status
+                    turning_stations = line_data.get("turning_stations", set())
+                    hubs = line_data.get("hubs", set())
+                    
+                    if not station_list: skip_prediction = True # 駅リストがなければ予測不能
 
+                    status_to_check = current_status
+                    forced_station = None
+
+                    # --- 路線連携ロジック ---
+                    if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status:
+                        sobu_status = info_dict.get("odpt.Railway:JR-East.ChuoSobuLocal", {}).get("odpt:trainInformationText", {}).get("ja")
+                        if sobu_status: status_to_check = sobu_status
                     elif line_id == "odpt.Railway:JR-East.Saikyo":
                         if "山手線内での" in current_status:
-                            yamanote_info = info_dict.get("odpt.Railway:JR-East.Yamanote", {})
-                            yamanote_status = yamanote_info.get("odpt:trainInformationText", {}).get("ja")
+                            yamanote_status = info_dict.get("odpt.Railway:JR-East.Yamanote", {}).get("odpt:trainInformationText", {}).get("ja")
                             if yamanote_status: status_to_check = yamanote_status
                         elif "湘南新宿ライン内での" in current_status:
-                            shonan_info = info_dict.get("odpt.Railway:JR-East.ShonanShinjuku", {})
-                            shonan_status = shonan_info.get("odpt:trainInformationText", {}).get("ja")
+                            shonan_status = info_dict.get("odpt.Railway:JR-East.ShonanShinjuku", {}).get("odpt:trainInformationText", {}).get("ja")
                             if shonan_status: status_to_check = shonan_status
                         elif "東海道線内での" in current_status or "横須賀線内での" in current_status:
                             forced_station = "大崎"
-                        # ### ここからが完成した「思考放棄」ルール ###
                         elif "線内での" in current_status:
-                            print(f"--- [JR INFO] 埼京線の未知の路線での事象のため、予測をスキップします ---", flush=True)
                             skip_prediction = True
-                        # ### ここまで ###
-                    elif line_id == "odpt.Railway:JR-East.Narita":
-                        match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
-                        match_at = re.search(r'(.+?)駅での', status_to_check)
-                        stop_station = ""
-                        if match_between: stop_station = match_between.group(1) # 区間なら開始駅で判断
-                        elif match_at: stop_station = match_at.group(1)
-
-                        if stop_station:
-                            if stop_station in line_data.get("stations_main", []):
-                                station_list = line_data["stations_main"]
-                                print(f"--- [JR INFO] 成田線(本線)で事象発生と判断 ---", flush=True)
-                            elif stop_station in line_data.get("stations_abiko", []):
-                                station_list = line_data["stations_abiko"]
-                                print(f"--- [JR INFO] 成田線(我孫子支線)で事象発生と判断 ---", flush=True)
-                            elif stop_station in line_data.get("stations_airport", []):
-                                print(f"--- [JR INFO] 成田線(空港支線)での事象のため、予測をスキップ ---", flush=True)
-                                skip_prediction = True
-                            else: # どのリストにもなければ予測不能
-                                skip_prediction = True
-                        else: # 駅名が特定できなければ予測不能
-                            skip_prediction = True
-                    else:
-                        # 他の路線は通常のリストを使用
-                        station_list = line_data.get("stations", [])
                     
-                    # 思考放棄フラグが立っていなければ、予測処理に進む
+                    # --- 予測実行 ---
                     if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
-                    if forced_station:
-                            if forced_station in station_list:
-                                idx = station_list.index(forced_station)
-                                turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
-                                turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                    else:    
-                        match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
-                        match_at = re.search(r'(.+?)駅での', status_to_check)
-
-                    try:
-                        if match_between:
-                            station1, station2 = match_between.groups()
-                            if station1 in station_list and station2 in station_list:
-                                idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                                start_idx, end_idx = min(idx1, idx2), max(idx1, idx2)
-                                turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, start_idx - 1, -1)
-                                turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, end_idx + 1, 1)
-                        elif match_at:
-                            station = match_at.group(1)
-                            if station in station_list:
-                                idx = station_list.index(station)
-                                turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
-                                turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                    except ValueError:
-                        pass
-                    
-                    message_title = f"【{line_name_jp} 折返し区間予測】"
-                    running_sections = []
-
-                    # もし、その路線に「ハブ」の定義があれば、新しい方式で計算
-                    if "hubs" in line_data:
-                        hubs = line_data["hubs"]
-                        if turn_back_1:
-                            hub_1 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_1), -1)
-                            if hub_1: running_sections.append(f"・{hub_1}～{turn_back_1}")
-                        if turn_back_2:
-                            hub_2 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_2), 1)
-                            if hub_2: running_sections.append(f"・{turn_back_2}～{hub_2}")
-                    else: # ハブの定義がなければ、従来通り始点と終点から計算
-                        line_start, line_end = station_list[0], station_list[-1]
-                        if turn_back_1 and turn_back_1 != line_start: running_sections.append(f"・{line_start}～{turn_back_1}")
-                        if turn_back_2 and turn_back_2 != line_end: running_sections.append(f"・{turn_back_2}～{line_end}")
-                    
-                    reason_text = ""
-                    reason_match = re.search(r'頃\s*(.+?)の影響で', current_status)
-                    if reason_match: reason_text = f"\nこれは{reason_match.group(1)}です。"
-
-                    disclaimer = "\n状況により折返し運転が実施されない場合があります。"
-                    
-                    final_message = message_title
-                    if running_sections: final_message += f"\n" + "\n".join(running_sections)
-                    
-                    final_message += reason_text
-                    final_message += disclaimer
-                    notification_messages.append(final_message)
-                    prediction_made = True
+                        try:
+                            if forced_station:
+                                if forced_station in station_list:
+                                    idx = station_list.index(forced_station)
+                                    turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
+                                    turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                            else:
+                                match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
+                                match_at = re.search(r'(.+?)駅での', status_to_check)
+                                if match_between:
+                                    station1, station2 = match_between.groups()
+                                    if station1 in station_list and station2 in station_list:
+                                        idx1, idx2 = station_list.index(station1), station_list.index(station2)
+                                        start_idx, end_idx = min(idx1, idx2), max(idx1, idx2)
+                                        turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, start_idx - 1, -1)
+                                        turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, end_idx + 1, 1)
+                                elif match_at:
+                                    station = match_at.group(1)
+                                    if station in station_list:
+                                        idx = station_list.index(station)
+                                        turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
+                                        turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                        except ValueError: pass # 駅名がリストになくても無視
+                        
+                        # --- メッセージ作成 ---
+                        message_title = f"【{line_name_jp} 折返し区間予測】"
+                        running_sections = []
+                        if hubs:
+                            if turn_back_1:
+                                hub_1 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_1), -1)
+                                if hub_1: running_sections.append(f"・{hub_1}～{turn_back_1}")
+                            if turn_back_2:
+                                hub_2 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_2), 1)
+                                if hub_2: running_sections.append(f"・{turn_back_2}～{hub_2}")
+                        else:
+                            line_start, line_end = station_list[0], station_list[-1]
+                            if turn_back_1 and turn_back_1 != line_start: running_sections.append(f"・{line_start}～{turn_back_1}")
+                            if turn_back_2 and turn_back_2 != line_end: running_sections.append(f"・{turn_back_2}～{line_end}")
+                        
+                        reason_text = ""
+                        reason_match = re.search(r'頃\s*(.+?)の影響で', current_status)
+                        if reason_match: reason_text = f"\nこれは{reason_match.group(1)}です。"
+                        disclaimer = "\n状況により折返し運転が実施されない場合があります。"
+                        
+                        final_message = message_title
+                        if running_sections: final_message += f"\n" + "\n".join(running_sections)
+                        final_message += reason_text
+                        final_message += disclaimer
+                        notification_messages.append(final_message)
+                        prediction_made = True
                 
-                # ▼▼▼ 簡単な処置 ▼▼▼
+                # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
-                    line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id) # カルテにあれば日本語名、なければID
+                    # line_name_jpをここで定義する
+                    line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id) 
                     message = f"【{line_name_jp} 運行情報】\n{current_status}"
                     notification_messages.append(message)
         
         return notification_messages
 
+    except requests.exceptions.RequestException as req_err:
+        print(f"--- [JR INFO] ERROR: Network error during API request: {req_err}", flush=True)
+        return None
     except Exception as e:
-        print(f"--- [JR INFO] ERROR: {e} ---", flush=True)
+        print(f"--- [JR INFO] ERROR: An unexpected error occurred in check_jr_east_info: {e}", flush=True)
         return None
