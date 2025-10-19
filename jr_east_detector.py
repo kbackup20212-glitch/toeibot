@@ -2,6 +2,7 @@ import os
 import requests
 import re
 from chuo_line_specialist import check_chuo_line_train
+from co_line_specialist import check_co_line_train
 #from sobu_rapid_specialist import check_sobu_line_train
 from tokaido_line_specialist import check_tokaido_line_train
 from boso_specialist import check_boso_train
@@ -260,9 +261,9 @@ STATION_DICT = {
     'NishiKawagoe': '西川越', 
 
     #千代田線・小田急線主要駅
-    'Hakoneyumoto': '箱根湯本', 'ShinMatsuda': '新松田', 'Hadano': '秦野', 'Isehara': '伊勢原', 
-    'HonAtsugi':'本厚木', 'Ebina': '海老名', 'SagamiOno': '相模大野', 'Shinyurigaoka': '新百合ヶ丘', 
-    'Karakiida': '唐木田', 'Mukogaokayuen': '向ケ丘遊園', 'Seijogakuenmae': '成城学園前', 
+    'HakoneYumoto': '箱根湯本', 'ShinMatsuda': '新松田', 'Hadano': '秦野', 'Isehara': '伊勢原', 
+    'HonAtsugi':'本厚木', 'Ebina': '海老名', 'SagamiOno': '相模大野', 'ShinYurigaoka': '新百合ヶ丘', 
+    'Karakiida': '唐木田', 'MukogaokaYuen': '向ケ丘遊園', 'SeijogakuenMae': '成城学園前', 
     'YoyogiUehara': '代々木上原', 'YoyogiKoen': '代々木公園', 'MeijiJingumae': '明治神宮前',
     'Omotesando': '表参道', 'Kasumigaseki': '霞ケ関', 'Otemachi': '大手町', 'Yushima': '湯島',  
 
@@ -824,29 +825,47 @@ def process_irregularities(train_data, line_config):
         notification_id = f"{train_number}_{dest_station_en}"
         
         is_irregular = False
-        train_type_jp = ""
-        display_dest_en = dest_station_en
+        train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id) 
+        line_id = line_config['id']
+
 
         # 【現場監督の判断】
         if line_config['id'] == 'odpt.Railway:JR-East.ChuoRapid':
             is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Chuo':
-            is_irregular, train_type_jp = check_chuo_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+            is_irregular, train_type_jp = check_co_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Tokaido':
             is_irregular, train_type_jp, display_dest_en = check_tokaido_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
-        #elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
-            #is_irregular, train_type_jp = check_sobu_line_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Keiyo':
             is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
             is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Yamanote':
             is_irregular, train_type_jp = _is_yamanote_line_train_irregular(train, line_config)
+            dest_station_en = display_dest_en
+        
         else: # それ以外の路線
             current_trip = (train_type_id, dest_station_en)
             if current_trip not in line_config.get("regular_trips", {}):
                 is_irregular = True
             train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
+        
+        is_special_name_from_specialist = train_type_jp not in TRAIN_TYPE_NAMES.values() and train_type_jp != train_type_id
+
+        if not is_special_name_from_specialist:
+             # ルール1: 特定路線の Local は「普通」
+             if train_type_id == 'odpt.TrainType:JR-East.Local' and \
+                line_id in ['odpt.Railway:JR-East.Takasaki', 
+                             'odpt.Railway:JR-East.Utsunomiya', 
+                             'odpt.Railway:JR-East.Tokaido']:
+                 train_type_jp = "普通"
+             
+             # ルール2: 特定路線の SpecialRapid は「ホリデー快速」
+             elif train_type_id == 'odpt.TrainType:JR-East.SpecialRapid' and \
+                  line_id in ['odpt.Railway:JR-East.ChuoRapid', 
+                              'odpt.Railway:JR-East.Ome']:
+                 train_type_jp = "ホリデー快速"
+             # 他にもルールがあれば elif で追加
 
         if is_irregular and notification_id not in notified_trains:
             try:
@@ -867,7 +886,7 @@ def process_irregularities(train_data, line_config):
                     from_jp = STATION_DICT.get(from_station_id.split('.')[-1], from_station_id.split('.')[-1])
                     location_text = f"{from_jp}に停車中"
                 delay_minutes = round(train.get("odpt:delay", 0) / 60)
-                delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "(定刻)"
+                delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "定刻"
                 message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
                 # location_textが存在し、かつ遅延がある場合のみ遅延情報を追記
                 location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text

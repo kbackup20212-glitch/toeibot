@@ -36,6 +36,16 @@ CHIYODA_STATIONS = [ # 本線
 CHIYODA_TURNING_STATIONS = {
     '代々木上原', '代々木公園', '明治神宮前', '表参道', '霞ケ関', '大手町', '湯島', '北千住', '綾瀬', 'JR常磐線内'
 }
+
+# --- 副都心線データ ---
+FUKUTOSHIN_STATIONS = [ 
+    '和光市', '地下鉄成増', '地下鉄赤塚', '氷川台', '小竹向原', '千川', '要町', '池袋', 
+    '雑司が谷', '西早稲田', '東新宿', '新宿三丁目', '北参道', '明治神宮前', '渋谷',
+]
+FUKUTOSHIN_TURNING_STATIONS = {
+    '和光市', '地下鉄成増', '小竹向原', '池袋', '新宿三丁目', '渋谷'
+}
+
 last_metro_statuses = {}
 
 # 折り返し可能な最寄り駅を探すヘルパー関数
@@ -90,6 +100,11 @@ def check_tokyo_metro_info():
                 elif line_id == "odpt.Railway:TokyoMetro.Marunouchi":
                     line_name_jp = "丸ノ内線"
                     turning_stations = MARUNOUCHI_TURNING_STATIONS
+                
+                elif line_id == "odpt.Railway:TokyoMetro.Fukutoshin":
+                    line_name_jp = "副都心線"
+                    station_list = FUKUTOSHIN_STATIONS
+                    turning_stations = FUKUTOSHIN_TURNING_STATIONS
                     
                     match_between = re.search(r'(.+?)駅～(.+?)駅', current_status)
                     match_at = re.search(r'(.+?)駅で', current_status)
@@ -111,21 +126,43 @@ def check_tokyo_metro_info():
                 match_at = re.search(r'(.+?)駅で', current_status)
 
                 try:
+                    turn_back_1, turn_back_2 = None, None # 先に初期化
+
                     if match_between:
                         station1, station2 = match_between.groups()
+                        # 駅名がリストに存在するか確認してからインデックスを取得
                         if station1 in station_list and station2 in station_list:
                             idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                            start_idx, end_idx = min(idx1, idx2), max(idx1, idx2)
-                            turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, start_idx - 1, -1)
-                            turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, end_idx + 1, 1)
+                            boundary_idx_1 = min(idx1, idx2)
+                            boundary_idx_2 = max(idx1, idx2)
+                            
+                            # 境界駅(手前側)自体が折り返し可能かチェック
+                            station_before = station_list[boundary_idx_1]
+                            if station_before in turning_stations:
+                                turn_back_1 = station_before
+                            else: # ダメなら外側を探索
+                                turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_1 - 1, -1)
+                                
+                            # 境界駅(奥側)自体が折り返し可能かチェック
+                            station_after = station_list[boundary_idx_2]
+                            if station_after in turning_stations:
+                                turn_back_2 = station_after
+                            else: # ダメなら外側を探索
+                                turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_2 + 1, 1)
+
                     elif match_at:
                         station = match_at.group(1)
+                        # 駅名がリストに存在するか確認してからインデックスを取得
                         if station in station_list:
                             idx = station_list.index(station)
+                            # 駅で事故の場合は、必ず外側を探索
                             turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                             turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+
                 except ValueError:
-                    pass
+                    # 駅名が station_list に見つからなかった場合など
+                    print(f"--- [METRO WARNING] Failed to find station index for {line_name_jp}", flush=True)
+                    pass # エラーが出ても処理を続ける
 
                 # ▼▼▼▼▼ ここからが新しい通知作成ロジック ▼▼▼▼▼
                 

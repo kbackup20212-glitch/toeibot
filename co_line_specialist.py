@@ -9,32 +9,31 @@ LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急新宿わかしお": {'Shinjuku', 'AwaKamogawa'},
     "特急アルプス": {},
 }
-CHUO_RAPID_REGULAR_DESTINATIONS = {
-    "快速": {'Tokyo','Mitaka','MusashiKoganei','Kokubunji', 'Tachikawa','Ome',
-           'Toyoda','Hachioji','Takao','Otsuki'},
+CO_RAPID_REGULAR_DESTINATIONS = {
+    "快速": {'Tokyo'},
     "快速ｻｳﾝﾄﾞｺﾆﾌｧｰ": {},
 }
-CHUO_LOCAL_REGULAR_DESTINATIONS = {
-    "各停": {'Tokyo', 'MusashiKoganei','Kokubunji', 'Tachikawa','Toyoda','Hachioji','Takao','Otsuki','Ome'},
+CO_LOCAL_REGULAR_DESTINATIONS = {
+    "各停": {'Takao','Otsuki', 'Kawaguchiko'},
     "普通むさしの号": {'Hachioji', 'Omiya'},
-    "普通": {'Tachikawa', 'Otsuki','Kawaguchiko',
-           'Kofu', 'Kobuchizawa', 'Matsumoto',},
+    "普通": {'Tachikawa','Takao', 'Otsuki','Kawaguchiko',
+           'Kofu', 'Kobuchizawa', 'Matsumoto','Nirasaki','Enzan', 'Nagano'},
 }
 
 # --- この専門家だけが使う、特殊な道具 ---
-def _get_chuo_local_type_name(train_number_str):
+def _get_co_local_type_name(train_number_str):
     if not train_number_str.endswith('M'): return "各停"
     if re.match(r'^26\d{2}M$', train_number_str): return "普通むさしの号"
     return "普通"
 
-def _get_chuo_rapid_nickname(train_number_str):
+def _get_co_rapid_nickname(train_number_str):
     match = re.search(r'\d+', train_number_str)
     if not match: return "快速"
     num = int(match.group(0))
     if (9876 <= num <= 9879): return "快速ｻｳﾝﾄﾞｺﾆﾌｧｰ"
     return "快速"
 
-def _get_chuo_limited_express_nickname(train_number_str):
+def _get_co_limited_express_nickname(train_number_str):
     match = re.search(r'\d+', train_number_str)
     if not match: return "特急"
     num = int(match.group(0))
@@ -47,18 +46,15 @@ def _get_chuo_limited_express_nickname(train_number_str):
     return "特急"
 
 # --- この専門家が、現場監督に提供する唯一の報告機能 ---
-def check_chuo_line_train(train, general_regular_trips, general_train_type_names):
-    """
-    中央線の列車を専門的に判定する。
-    戻り値: (is_irregular: bool, train_type_jp: str)
-    """
+def check_co_line_train(train, general_regular_trips, general_train_type_names):
+
     train_type_id = train["odpt:trainType"]
     dest_station_en = train["odpt:destinationStation"][-1].split('.')[-1].strip()
     train_number = train["odpt:trainNumber"]
 
     # 【特急の場合】
     if train_type_id == 'odpt.TrainType:JR-East.LimitedExpress':
-        nickname = _get_chuo_limited_express_nickname(train_number)
+        nickname = _get_co_limited_express_nickname(train_number)
         if nickname in LIMITED_EXPRESS_REGULAR_DESTINATIONS:
             allowed_dests = LIMITED_EXPRESS_REGULAR_DESTINATIONS[nickname]
             is_irregular = dest_station_en not in allowed_dests
@@ -66,15 +62,15 @@ def check_chuo_line_train(train, general_regular_trips, general_train_type_names
     
        # 【快速の場合】
     if train_type_id == 'odpt.TrainType:JR-East.rapid':
-        rapid_type = _get_chuo_rapid_nickname(train_number)
-        allowed_dests = CHUO_RAPID_REGULAR_DESTINATIONS.get(rapid_type, set())
+        rapid_type = _get_co_rapid_nickname(train_number)
+        allowed_dests = CO_RAPID_REGULAR_DESTINATIONS.get(rapid_type, set())
         is_irregular = dest_station_en not in allowed_dests
         return is_irregular, rapid_type
     
     # 【各停・普通の場合】
     if train_type_id == 'odpt.TrainType:JR-East.Local':
-        local_type = _get_chuo_local_type_name(train_number)
-        allowed_dests = CHUO_LOCAL_REGULAR_DESTINATIONS.get(local_type, set())
+        local_type = _get_co_local_type_name(train_number)
+        allowed_dests = CO_LOCAL_REGULAR_DESTINATIONS.get(local_type, set())
         is_irregular = dest_station_en not in allowed_dests
         return is_irregular, local_type
 

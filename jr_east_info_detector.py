@@ -203,31 +203,52 @@ def check_jr_east_info() -> Optional[List[str]]:
                             skip_prediction = True
                     
                     # --- 予測実行 ---
-                    if not skip_prediction:
+                    if not skip_prediction and station_list:
                         turn_back_1, turn_back_2 = None, None
                         try:
-                            if forced_station:
+                            if forced_station: # 「みなし処理」の場合
                                 if forced_station in station_list:
                                     idx = station_list.index(forced_station)
+                                    # この場合も境界（forced_station）は使えないので外側を探索
                                     turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                     turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
                             else:
                                 match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
                                 match_at = re.search(r'(.+?)駅での', status_to_check)
+
+                                # ▼▼▼▼▼ ここからが新しい境界駅チェック ▼▼▼▼▼
                                 if match_between:
                                     station1, station2 = match_between.groups()
                                     if station1 in station_list and station2 in station_list:
                                         idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                                        start_idx, end_idx = min(idx1, idx2), max(idx1, idx2)
-                                        turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, start_idx - 1, -1)
-                                        turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, end_idx + 1, 1)
+                                        # 境界駅のインデックス
+                                        boundary_idx_1 = min(idx1, idx2)
+                                        boundary_idx_2 = max(idx1, idx2)
+                                        
+                                        # 境界駅(手前側)自体が折り返し可能かチェック
+                                        station_before = station_list[boundary_idx_1]
+                                        if station_before in turning_stations:
+                                            turn_back_1 = station_before
+                                        else: # ダメなら外側を探索
+                                            turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_1 - 1, -1)
+                                            
+                                        # 境界駅(奥側)自体が折り返し可能かチェック
+                                        station_after = station_list[boundary_idx_2]
+                                        if station_after in turning_stations:
+                                            turn_back_2 = station_after
+                                        else: # ダメなら外側を探索
+                                            turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_2 + 1, 1)
+
                                 elif match_at:
                                     station = match_at.group(1)
                                     if station in station_list:
                                         idx = station_list.index(station)
+                                        # 駅で事故の場合は、その駅では折り返せないので、必ず外側を探索
                                         turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                         turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                        except ValueError: pass # 駅名がリストになくても無視
+                                # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+                        except ValueError: pass
                         
                         # --- メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
