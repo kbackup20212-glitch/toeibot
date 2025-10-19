@@ -822,6 +822,7 @@ def process_irregularities(train_data, line_config):
         if not all([train_type_id, dest_station_id_list, train_number]): continue
         
         dest_station_en = dest_station_id_list[-1].split('.')[-1].strip()
+        display_dest_en = dest_station_en
         notification_id = f"{train_number}_{dest_station_en}"
         
         is_irregular = False
@@ -842,7 +843,7 @@ def process_irregularities(train_data, line_config):
             is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Yamanote':
             is_irregular, train_type_jp = _is_yamanote_line_train_irregular(train, line_config)
-            dest_station_en = display_dest_en
+
         
         else: # それ以外の路線
             current_trip = (train_type_id, dest_station_en)
