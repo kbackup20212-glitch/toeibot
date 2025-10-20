@@ -578,7 +578,7 @@ JR_LINES_TO_MONITOR = [
         }
     },
     { # 宇都宮線
-        "id": "odpt.Railway:JR-East.Usunomiya",
+        "id": "odpt.Railway:JR-East.Utsunomiya",
         "name": "宇都宮線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Ito'),

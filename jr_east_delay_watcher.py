@@ -21,15 +21,18 @@ API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:Train" # 在線情報
 
 # --- 監視対象の列車情報を保持する辞書 ---
 tracked_delayed_trains: Dict[str, Dict[str, Any]] = {}
+# ★★★ 路線ごとの通知クールダウン用辞書 ★★★
+line_cooldown_tracker: Dict[str, float] = {}
 
 # --- 設定値 ---
 DELAY_THRESHOLD_SECONDS = 3 * 60
 INCREASE_COUNT_THRESHOLD = 5
 CLEANUP_THRESHOLD_SECONDS = 15 * 60
+COOLDOWN_SECONDS = 30 * 60 # ★★★ 30分間のクールダウン ★★★
 
 # --- メイン関数 ---
 def check_delay_increase() -> Optional[List[str]]:
-    global tracked_delayed_trains
+    global tracked_delayed_trains, line_cooldown_tracker
     notification_messages: List[str] = []
     current_time = time.time()
     trains_found_this_cycle: set = set()
@@ -76,25 +79,36 @@ def check_delay_increase() -> Optional[List[str]]:
                     print(f"--- [DELAY WATCH] Train {train_number}: Count {tracking_info['consecutive_increase_count']}/{INCREASE_COUNT_THRESHOLD} at {current_location_id}", flush=True)
 
                     if tracking_info["consecutive_increase_count"] >= INCREASE_COUNT_THRESHOLD:
-                        # インポートした辞書を使う
-                        line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
-                        location_name_en = current_location_id.split('.')[-1]
-                        location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
+                        last_notification_time = line_cooldown_tracker.get(line_id, 0) # 前回通知時刻を取得 (なければ0)
                         
-                        message = (
-                            f"[{line_name_jp} 運転見合わせの可能性あり]\n"
-                            f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
-                            f"今後の運行情報にご注意ください。"
-                        )
-                        notification_messages.append(message)
-                        del tracked_delayed_trains[train_number] # 通知したら削除
-                        print(f"--- [DELAY WATCH] !!! NOTIFICATION SENT for Train {train_number} !!!", flush=True)
-                
-                else: # 場所は同じで、遅延が横ばい or 微減の場合
-                    # 何もしない (追跡を継続)
-                    tracking_info["last_seen_time"] = current_time # 最終確認時刻だけ更新
-                    print(f"--- [DELAY WATCH] Train {train_number}: Condition stable/slightly decreased at {current_location_id}. Continuing track.", flush=True)
-                # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+                        # クールダウン時間が経過しているかチェック
+                        if current_time - last_notification_time > COOLDOWN_SECONDS:
+                            line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
+                            location_name_en = current_location_id.split('.')[-1]
+                            location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
+                            
+                            message = (
+                                f"[{line_name_jp} 運転見合わせの可能性あり]\n"
+                                f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
+                                f"今後の運行情報にご注意ください。"
+                            )
+                            notification_messages.append(message)
+                            
+                            # ★★★ 通知時刻を記録 ★★★
+                            line_cooldown_tracker[line_id] = current_time
+                            
+                            del tracked_delayed_trains[train_number] # この列車の追跡は解除
+                            print(f"--- [DELAY WATCH] !!! NOTIFICATION SENT for Train {train_number} on {line_name_jp}. Cooldown started. !!!", flush=True)
+                        else:
+                             # クールダウン中の場合
+                             print(f"--- [DELAY WATCH] Train {train_number}: Threshold reached, but line {line_name_jp} is in cooldown. Notification skipped.", flush=True)
+                             # クールダウン中でも、この列車の追跡は解除する (通知済み扱い)
+                             del tracked_delayed_trains[train_number]
+                    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+                else: # 遅延が横ばい or 微減
+                    tracking_info["last_seen_time"] = current_time
+                    # ログは省略してもOK
 
             elif current_delay >= DELAY_THRESHOLD_SECONDS: # 新規追跡
                  print(f"--- [DELAY WATCH] Train {train_number}: Start tracking (Delay={current_delay}s at {current_location_id}).", flush=True)
