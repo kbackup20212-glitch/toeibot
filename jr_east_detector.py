@@ -282,6 +282,16 @@ TRAIN_TYPE_NAMES = {
     # 他の種別も必要に応じて追加可能
 }
 
+KEIHIN_TOHOKU_STATIONS = [
+    '大宮', 'さいたま新都心', '与野', '北浦和', '浦和', '南浦和', '蕨', '西川口',
+    '川口', '赤羽', '東十条', '王子', '上中里', '田端', '西日暮里', '日暮里',
+    '鶯谷', '上野', '御徒町', '秋葉原', '神田', '東京', '有楽町', '新橋',
+    '浜松町', # ← ここが境界
+    '田町', '高輪ゲートウェイ', '品川', '大井町', '大森', '蒲田',
+    '川崎', '鶴見', '新子安', '東神奈川', '横浜', '桜木町', '関内', '石川町',
+    '山手', '根岸', '磯子', '新杉田', '洋光台', '港南台', '本郷台', '大船'
+]
+
 JR_LINES_TO_MONITOR = [
     {
         "id": "odpt.Railway:JR-East.Yamanote",
@@ -855,6 +865,32 @@ def process_irregularities(train_data, line_config):
                 is_irregular = True
             train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
         
+        if is_irregular and line_id == "odpt.Railway:JR-East.KeihinTohokuNegishi":
+            direction = train.get("odpt:railDirection")
+            current_location_id = train.get("odpt:toStation") or train.get("odpt:fromStation")
+
+            # 条件: 快速 / 南行 / 浜松町以南 / 鶴見or東神奈川行き
+            if train_type_id == 'odpt.TrainType:JR-East.Rapid' and \
+               direction and "Southbound" in direction and \
+               current_location_id and \
+               dest_station_en in ['Tsurumi', 'Higashi-Kanagawa']:
+                try:
+                    hamamatsucho_index = KEIHIN_TOHOKU_STATIONS.index('浜松町')
+                    current_station_name_en = current_location_id.split('.')[-1]
+                    # 駅名辞書(STATION_DICT)を使って日本語名に変換
+                    current_station_name_jp = STATION_DICT.get(current_station_name_en, "")
+
+                    if current_station_name_jp and current_station_name_jp in KEIHIN_TOHOKU_STATIONS:
+                         current_index = KEIHIN_TOHOKU_STATIONS.index(current_station_name_jp)
+                         # 浜松町のインデックスより大きければ（南にいれば）見逃す
+                         if current_index > hamamatsucho_index:
+                             print(f"--- [K-TOHOKU SKIP] Train {train_number}: Skipping notification for Rapid to {dest_station_en} south of Hamamatsucho.", flush=True)
+                             is_irregular = False # ★★★ 通知対象から除外 ★★★
+                except (ValueError, IndexError, KeyError):
+                     # 駅名が見つからない or インデックスエラーなどの場合は何もしない (is_irregular は True のまま)
+                     print(f"--- [K-TOHOKU SKIP] Warning: Could not determine location for skip check on {train_number}. Station ID: {current_location_id}", flush=True)
+                     pass
+                
         is_special_name_from_specialist = train_type_jp not in TRAIN_TYPE_NAMES.values() and train_type_jp != train_type_id
 
         if not is_special_name_from_specialist:

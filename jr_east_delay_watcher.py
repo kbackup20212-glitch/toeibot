@@ -54,10 +54,24 @@ def check_delay_increase() -> Optional[List[str]]:
 
             if train_number in tracked_delayed_trains:
                 tracking_info = tracked_delayed_trains[train_number]
-                if current_location_id == tracking_info["last_location_id"] and current_delay > tracking_info["last_delay"]:
+
+                # ▼▼▼▼▼ ここからリセット条件を修正 ▼▼▼▼▼
+                # 条件①：場所が変わったか？
+                moved = current_location_id != tracking_info["last_location_id"]
+                # 条件②：遅延が閾値未満に回復したか？
+                recovered = current_delay < DELAY_THRESHOLD_SECONDS
+
+                if moved or recovered:
+                    # 場所が変わったか、遅延が回復したらリセット
+                    if moved: print(f"--- [DELAY WATCH] Train {train_number}: Reset (moved).", flush=True)
+                    if recovered: print(f"--- [DELAY WATCH] Train {train_number}: Reset (delay recovered).", flush=True)
+                    del tracked_delayed_trains[train_number]
+                
+                # 条件③：場所は同じで遅延が増加したか？ (横ばいや微減は無視)
+                elif current_delay > tracking_info["last_delay"]:
                     tracking_info["consecutive_increase_count"] += 1
                     tracking_info["last_delay"] = current_delay
-                    tracking_info["last_seen_time"] = current_time
+                    tracking_info["last_seen_time"] = current_time # 最終確認時刻は常に更新
                     
                     print(f"--- [DELAY WATCH] Train {train_number}: Count {tracking_info['consecutive_increase_count']}/{INCREASE_COUNT_THRESHOLD} at {current_location_id}", flush=True)
 
@@ -73,15 +87,14 @@ def check_delay_increase() -> Optional[List[str]]:
                             f"今後の運行情報にご注意ください。"
                         )
                         notification_messages.append(message)
-                        del tracked_delayed_trains[train_number]
+                        del tracked_delayed_trains[train_number] # 通知したら削除
                         print(f"--- [DELAY WATCH] !!! NOTIFICATION SENT for Train {train_number} !!!", flush=True)
                 
-                else: # 条件リセット
-                    if current_location_id != tracking_info["last_location_id"]:
-                         print(f"--- [DELAY WATCH] Train {train_number}: Reset (moved).", flush=True)
-                    elif current_delay <= tracking_info["last_delay"]:
-                         print(f"--- [DELAY WATCH] Train {train_number}: Reset (delay stable/decreased).", flush=True)
-                    del tracked_delayed_trains[train_number]
+                else: # 場所は同じで、遅延が横ばい or 微減の場合
+                    # 何もしない (追跡を継続)
+                    tracking_info["last_seen_time"] = current_time # 最終確認時刻だけ更新
+                    print(f"--- [DELAY WATCH] Train {train_number}: Condition stable/slightly decreased at {current_location_id}. Continuing track.", flush=True)
+                # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
             elif current_delay >= DELAY_THRESHOLD_SECONDS: # 新規追跡
                  print(f"--- [DELAY WATCH] Train {train_number}: Start tracking (Delay={current_delay}s at {current_location_id}).", flush=True)
