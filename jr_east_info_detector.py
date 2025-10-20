@@ -22,9 +22,7 @@ JR_LINE_PREDICTION_DATA = {
             '東京', '新宿', '中野', '三鷹', '武蔵小金井', '国分寺', '国立', '立川', '豊田', '八王子', 
             '高尾'
         }
-    }
     },
-{
     "odpt.Railway:JR-East.SaikyoKawagoe": {
         "name": "埼京線",
         "stations": [
@@ -97,10 +95,12 @@ JR_LINE_PREDICTION_DATA = {
     },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
-    "odpt.Railway:JR-East.ChuoSobuLocal": {"name": "中央・総武線各駅停車"},
+    "odpt.Railway:JR-East.ChuoSobuLocal": {"name": "中央総武線"},
     }
 
 last_jr_east_statuses = {}
+
+NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します"]
 # ---------------------------------------------------------------
 
 # --- ヘルパー関数 ---
@@ -123,6 +123,16 @@ def _find_nearest_hub(station_list, hubs, start_index, direction):
 def check_jr_east_info() -> Optional[List[str]]:
     global last_jr_east_statuses
     notification_messages: List[str] = []
+
+    # ▼▼▼▼▼ ここからがシミュレーションコード ▼▼▼▼▼
+    # Trueにすると、指定した路線の事故を強制的に発生させる
+    SIMULATE_ACCIDENTS = False
+    SIMULATION_DATA = {
+    "odpt.Railway:JR-East.ChuoRapid": "中央線快速電車は、中央・総武各駅停車での人身事故の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
+    "odpt.Railway:JR-East.ChuoSobuLocal": "中央・総武各駅停車は、荻窪駅での人身事故の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
+    # 他のテストしたい路線とテキストをここに追加
+}
+    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
     try:
         params = {"odpt:operator": "odpt.Operator:jre-is", "acl:consumerKey": API_TOKEN}
         response = requests.get(API_ENDPOINT, params=params, timeout=30)
@@ -137,19 +147,54 @@ def check_jr_east_info() -> Optional[List[str]]:
              return None
 
         info_dict: Dict[str, Dict[str, Any]] = {}
-        for item in info_data:
-             if isinstance(item, dict) and \
-                item.get("odpt:railway") and \
-                isinstance(item.get("odpt:trainInformationText"), dict) and \
-                item.get("odpt:trainInformationText", {}).get("ja"):
-                 line_id: str = item["odpt:railway"]
-                 info_dict[line_id] = item
+        found_unexpected_item = False # 異物が見つかったかのフラグ
+        
+        for item_index, item in enumerate(info_data): # インデックスも取得
+             is_valid_dict = False # まずは無効と仮定
+             reason = "Unknown format" # 無効な理由
+
+             if isinstance(item, dict):
+                 line_id_val = item.get("odpt:railway")
+                 info_text_val = item.get("odpt:trainInformationText")
+                 ja_text_val = None
+                 if isinstance(info_text_val, dict):
+                      ja_text_val = info_text_val.get("ja")
+
+                 if line_id_val and ja_text_val:
+                      is_valid_dict = True # 必要なものが全て揃っていれば有効
+                 else:
+                      reason = "Missing required keys (railway or ja_text)"
              else:
-                 print(f"--- [JR INFO] WARNING: Skipping unexpected/incomplete item in API response: {item} ---", flush=True)
+                  reason = f"Not a dictionary (type: {type(item)})"
+
+             if is_valid_dict:
+                 # line_id_val が None でないことは上で保証済み
+                 info_dict[line_id_val] = item 
+             else:
+                 # 予期せぬ形式のデータは、その正体をログに出力！
+                 print(f"--- [JR INFO] WARNING: Skipping unexpected item at index {item_index} ---", flush=True)
+                 print(f"    -> Reason: {reason}", flush=True)
+                 print(f"    -> Raw Item Data: {repr(item)}", flush=True) # repr()で生の姿を表示
+                 found_unexpected_item = True
+        
+        # もし異物が見つかっていたら、ここで一度処理を止めてユーザーに知らせる (デバッグ用)
+        if found_unexpected_item:
+             print("--- [JR INFO] Unexpect item detected. Stopping further processing for this cycle. ---", flush=True)
+             # return None # 必要ならここで処理を中断しても良い
+        # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
         # === ここからが正しい処理ループ ===
         for line_id, line_info in info_dict.items():
+            if line_id not in JR_LINE_PREDICTION_DATA:
+                continue
             current_status: str = line_info["odpt:trainInformationText"]["ja"]
+            if not current_status: continue
+
+            if SIMULATE_ACCIDENTS and line_id in SIMULATION_DATA:
+                print(f"--- [SIMULATION] Injecting accident info for {line_id} ---", flush=True)
+                # 辞書から対応するテキストを取得して上書き
+                current_status = SIMULATION_DATA[line_id]
+                last_jr_east_statuses[line_id] = "dummy_status_to_force_update"
 
             if current_status != last_jr_east_statuses.get(line_id):
                 last_jr_east_statuses[line_id] = current_status
@@ -164,8 +209,8 @@ def check_jr_east_info() -> Optional[List[str]]:
                     # 成田線は支線があるので、station_listの決定が特殊
                     if line_id == "odpt.Railway:JR-East.Narita":
                         station_list = [] # まず空で初期化
-                        match_between = re.search(r'(.+?)～(.+?)駅間での', current_status)
-                        match_at = re.search(r'(.+?)駅での', current_status)
+                        match_between = re.search(r'、\s*([^\s～、]+?)駅～([^\s～、]+?)駅間(?:の)?', status_to_check)
+                        match_at = re.search(r'、\s*([^\s、]+?)駅で(?:の)?', status_to_check)
                         stop_station = ""
                         if match_between: stop_station = match_between.group(1)
                         elif match_at: stop_station = match_at.group(1)
@@ -188,8 +233,21 @@ def check_jr_east_info() -> Optional[List[str]]:
 
                     # --- 路線連携ロジック ---
                     if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status:
-                        sobu_status = info_dict.get("odpt.Railway:JR-East.ChuoSobuLocal", {}).get("odpt:trainInformationText", {}).get("ja")
-                        if sobu_status: status_to_check = sobu_status
+                        linked_line_id = "odpt.Railway:JR-East.ChuoSobuLocal"
+                        linked_status_raw = None
+                        # ★★★ シミュレーションモードを優先 ★★★
+                        if SIMULATE_ACCIDENTS and linked_line_id in SIMULATION_DATA:
+                            linked_status_raw = SIMULATION_DATA[linked_line_id]
+                            print(f"--- [JR INFO] ChuoRapid: Using SIMULATED Sobu status ---", flush=True)
+                        # シミュレーションでなければ、現実世界の情報を参照
+                        elif linked_line_id in info_dict:
+                             linked_status_raw = info_dict[linked_line_id].get("odpt:trainInformationText", {}).get("ja")
+                             print(f"--- [JR INFO] ChuoRapid: Using REAL Sobu status ---", flush=True)
+
+                        if linked_status_raw:
+                            status_to_check = linked_status_raw.strip()
+                        else:
+                             print(f"--- [JR INFO] ChuoRapid: Linked Sobu status was empty. Using original status.", flush=True)
                     elif line_id == "odpt.Railway:JR-East.Saikyo":
                         if "山手線内での" in current_status:
                             yamanote_status = info_dict.get("odpt.Railway:JR-East.Yamanote", {}).get("odpt:trainInformationText", {}).get("ja")
@@ -203,56 +261,106 @@ def check_jr_east_info() -> Optional[List[str]]:
                             skip_prediction = True
                     
                     # --- 予測実行 ---
-                    if not skip_prediction and station_list:
+                    if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
                         try:
-                            if forced_station: # 「みなし処理」の場合
-                                if forced_station in station_list:
-                                    idx = station_list.index(forced_station)
-                                    # この場合も境界（forced_station）は使えないので外側を探索
-                                    turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
-                                    turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                            else:
-                                match_between = re.search(r'(.+?)～(.+?)駅間での', status_to_check)
-                                match_at = re.search(r'(.+?)駅での', status_to_check)
+                            # 1回目の正規表現 (あえて不完全なまま)
+                            match_between = re.search(r'(.+?)駅～(.+?)駅間', status_to_check)
+                            match_at = re.search(r'(.+?)駅で', status_to_check)
 
-                                # ▼▼▼▼▼ ここからが新しい境界駅チェック ▼▼▼▼▼
-                                if match_between:
-                                    station1, station2 = match_between.groups()
-                                    if station1 in station_list and station2 in station_list:
+                            station_to_compare = ""
+                            station1, station2, station = None, None, None
+
+                            if match_between:
+                                station1_raw = match_between.group(1)
+                                station2_raw = match_between.group(2)
+                                station1 = re.split(r'[、\s]', station1_raw)[-1].strip()
+                                station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
+                                station_to_compare = station1
+                                print(f"  > Initial Regex (between): '{station1}', '{station2}'", flush=True)
+                            elif match_at:
+                                station_raw = match_at.group(1)
+                                station = re.split(r'[、\s]', station_raw)[-1].strip()
+                                station_to_compare = station
+                                print(f"  > Initial Regex (at): '{station}'", flush=True)
+
+                            # ▼▼▼▼▼ 逆転の発想チェック ▼▼▼▼▼
+                            if line_id == "odpt.Railway:JR-East.ChuoRapid" and station_to_compare and station_to_compare.startswith("中央・総武各"):
+                                print(f"--- [JR INFO] ChuoRapid: Detected ambiguous station '{station_to_compare}'. Switching to Sobu status. ---", flush=True)
+                                linked_line_id = "odpt.Railway:JR-East.ChuoSobuLocal"
+                                linked_status_raw = None
+                                if SIMULATE_ACCIDENTS and linked_line_id in SIMULATION_DATA:
+                                    linked_status_raw = SIMULATION_DATA[linked_line_id]
+                                elif linked_line_id in info_dict:
+                                     linked_status_raw = info_dict[linked_line_id].get("odpt:trainInformationText", {}).get("ja")
+
+                                if linked_status_raw:
+                                    status_to_check = linked_status_raw.strip() # ★★★ ここで情報を上書き ★★★
+                                    print(f"--- [JR INFO] Now checking Sobu status: '{status_to_check}'", flush=True)
+                                    # ★★★ もう一度、正規表現をかけ直す ★★★
+                                    match_between = re.search(r'([^\s～、]+?)駅～([^\s～、]+?)駅間(?:の)?', status_to_check)
+                                    match_at = re.search(r'([^\s、]+?)駅で(?:の)?', status_to_check)
+                                    station1, station2, station = None, None, None # 再初期化
+                                    if match_between:
+                                        station1 = match_between.group(1).strip()
+                                        station2 = match_between.group(2).strip()
+                                        station_to_compare = station1
+                                        print(f"  > Second Regex (between): '{station1}', '{station2}'", flush=True)
+                                    elif match_at:
+                                        station = match_at.group(1).strip()
+                                        station_to_compare = station
+                                        print(f"  > Second Regex (at): '{station}'", flush=True)
+                                else:
+                                    print(f"--- [JR INFO] Could not find Sobu status to switch.", flush=True)
+                                    station_to_compare = "" # 駅名不明として扱う
+                            # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+                            if station_to_compare:
+                                # 生のリストと駅名を表示
+                                list_repr = [repr(s) for s in station_list]
+                                print(f"  > Station List (raw): {list_repr[:5]}...", flush=True)
+                                station_repr = repr(station_to_compare)
+                                print(f"  > Station to Check (raw): {station_repr}", flush=True)
+
+                                is_in_list = station_to_compare in station_list
+                                print(f"  > Is Station in List?: {is_in_list}", flush=True)
+                                
+                                if is_in_list:
+                                    if match_between:
                                         idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                                        # 境界駅のインデックス
-                                        boundary_idx_1 = min(idx1, idx2)
-                                        boundary_idx_2 = max(idx1, idx2)
-                                        
-                                        # 境界駅(手前側)自体が折り返し可能かチェック
-                                        station_before = station_list[boundary_idx_1]
-                                        if station_before in turning_stations:
-                                            turn_back_1 = station_before
-                                        else: # ダメなら外側を探索
-                                            turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_1 - 1, -1)
-                                            
-                                        # 境界駅(奥側)自体が折り返し可能かチェック
-                                        station_after = station_list[boundary_idx_2]
-                                        if station_after in turning_stations:
-                                            turn_back_2 = station_after
-                                        else: # ダメなら外側を探索
-                                            turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_2 + 1, 1)
-
-                                elif match_at:
-                                    station = match_at.group(1)
-                                    if station in station_list:
+                                        b_idx1, b_idx2 = min(idx1, idx2), max(idx1, idx2)
+                                        print(f"  > Index Found (between): {b_idx1}, {b_idx2}", flush=True)
+                                        s_before, s_after = station_list[b_idx1], station_list[b_idx2]
+                                        # 境界駅チェック
+                                        if s_before in turning_stations: turn_back_1 = s_before
+                                        else: turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, b_idx1 - 1, -1)
+                                        if s_after in turning_stations: turn_back_2 = s_after
+                                        else: turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, b_idx2 + 1, 1)
+                                        print(f"  > Calculated Turnbacks (between): 1='{turn_back_1}', 2='{turn_back_2}'", flush=True)
+                                    elif match_at:
                                         idx = station_list.index(station)
-                                        # 駅で事故の場合は、その駅では折り返せないので、必ず外側を探索
+                                        print(f"  > Index Found (at): {idx}", flush=True)
                                         turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                         turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                                # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+                                        print(f"  > Calculated Turnbacks (at): 1='{turn_back_1}', 2='{turn_back_2}'", flush=True)
+                                else:
+                                     print(f"  > Station NOT FOUND in list. Skipping calculation.", flush=True)
+                            else:
+                                print(f"  > No valid station extracted. Skipping calculation.", flush=True)
 
-                        except ValueError: pass
+                            print(f"--- [Prediction Calculation END] ---\n", flush=True)
+
+                        except ValueError as e:
+                            print(f"--- [JR WARNING] Failed to find index. Station: '{station_to_compare}'. Error: {e}", flush=True)
+                            pass
+                        except Exception as find_err:
+                            print(f"--- [JR WARNING] Error during turning station search for {line_name_jp}: {find_err}", flush=True)
+                            pass
                         
                         # --- メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
                         running_sections = []
+                        
                         if hubs:
                             if turn_back_1:
                                 hub_1 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_1), -1)
@@ -266,8 +374,26 @@ def check_jr_east_info() -> Optional[List[str]]:
                             if turn_back_2 and turn_back_2 != line_end: running_sections.append(f"・{turn_back_2}～{line_end}")
                         
                         reason_text = ""
-                        reason_match = re.search(r'頃\s*(.+?)の影響で', current_status)
-                        if reason_match: reason_text = f"\nこれは{reason_match.group(1)}です。"
+                        # まず、全体の構造「(場所)での(原因)の影響で」を探す
+                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+
+                        if reason_match:
+                            location_part = reason_match.group(1).strip() # 「駅」または「駅間」までの部分全体
+                            cause = reason_match.group(2).strip() # 原因の部分
+
+                            # location_part から、最後の単語（＝駅名や区間名）だけを抜き出す
+                            # 例：「中央線快速電車は、西国分寺駅」→「西国分寺駅」
+                            # 例：「中央線快速電車は、 西国分寺～国立駅間」→「西国分寺～国立駅間」
+                            location_elements = re.split(r'[、\s]', location_part) # 読点や空白で区切る
+                            actual_location = location_elements[-1] if location_elements else location_part # 最後の要素を取得
+
+                            reason_text = f"\nこれは、{actual_location}での{cause}の影響です。"
+                        # 一致しない場合は、シンプルな抽出 (これは変更なし)
+                        elif not reason_text:
+                            reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status)
+                            if reason_match_simple:
+                                reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
+
                         disclaimer = "\n状況により折返し運転が実施されない場合があります。"
                         
                         final_message = message_title
@@ -279,10 +405,13 @@ def check_jr_east_info() -> Optional[List[str]]:
                 
                 # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
-                    # line_name_jpをここで定義する
-                    line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id) 
-                    message = f"【{line_name_jp} 運行情報】\n{current_status}"
-                    notification_messages.append(message)
+                    if not any(keyword in current_status for keyword in NORMAL_STATUS_KEYWORDS):
+                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
+                        message = f"【{line_name_jp} 運行情報】\n{current_status}"
+                        notification_messages.append(message)
+                    else:
+                        # 平常運転の場合はログにだけ記録（デバッグ用、不要なら消してもOK）
+                        print(f"--- [JR INFO] Skipping notification for {line_id} (Normal operation) ---", flush=True)
         
         return notification_messages
 
@@ -290,5 +419,14 @@ def check_jr_east_info() -> Optional[List[str]]:
         print(f"--- [JR INFO] ERROR: Network error during API request: {req_err}", flush=True)
         return None
     except Exception as e:
-        print(f"--- [JR INFO] ERROR: An unexpected error occurred in check_jr_east_info: {e}", flush=True)
-        return None
+        # ▼▼▼▼▼ ここからが最後の尋問コード ▼▼▼▼▼
+        # エラーの種類と、それが起きた正確な場所を特定する
+        import traceback
+        print(f"--- [JR INFO] DETAILED ERROR REPORT ---", flush=True)
+        print(f"  > Error Type: {type(e).__name__}", flush=True)
+        print(f"  > Error Message: {e}", flush=True)
+        print(f"  > Traceback:", flush=True)
+        traceback.print_exc() # エラーが発生した場所までの詳細な経路を出力
+        print(f"------------------------------------", flush=True)
+        # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        return None # エラーが起きたらNoneを返すのは変わらない

@@ -101,7 +101,7 @@ STATION_DICT = {
     'Fukutawara': '福俵', 'Togane': '東金', 'Gumyo': '求名',
 
     #京葉線
-    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiohama': '潮見', 'KasaiRinkaikoen': '葛西臨海公園',
+    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiomi': '潮見', 'KasaiRinkaikoen': '葛西臨海公園',
     'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
     'ShinNarashino': '新習志野', 'Kaihimmakuhari': '海浜幕張', 'Kemigawahama': '検見川浜',
     'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと', 'Soga': '蘇我', 
@@ -701,6 +701,7 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Local', 'ShinNarashino'),
             ('odpt.TrainType:JR-East.Local', 'Kaihimmakuhari'),
             ('odpt.TrainType:JR-East.Local', 'Soga'),
+            ('odpt.TrainType:JR-East.Local', 'Honda'),
             ('odpt.TrainType:JR-East.Local', 'KazusaIchinomiya'),
             ('odpt.TrainType:JR-East.Local', 'Kimitsu'),
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),

@@ -1,205 +1,198 @@
 import os
 import requests
 import re
+from typing import Dict, Any, List, Optional
 
-# 多摩モノレールと同じトークンを使用
+# --- 基本設定 ---
 API_TOKEN = os.getenv('ODPT_TOKEN_TOEI')
 API_ENDPOINT = "https://api.odpt.org/api/v4/odpt:TrainInformation"
 
-# --- 銀座線の路線データ ---
-GINZA_LINE_STATIONS = [
-    '渋谷', '表参道', '外苑前', '青山一丁目', '赤坂見附', '溜池山王', '虎ノ門', 
-    '新橋', '銀座', '京橋', '日本橋', '三越前', '神田', '末広町', '上野広小路', 
-    '上野', '稲荷町', '田原町', '浅草'
-]
-# 折り返し設備がある駅のリスト
-GINZA_LINE_TURNING_STATIONS = {
-    '渋谷', '溜池山王', '銀座', '三越前', '上野', '浅草'
-}
-# --- 丸ノ内線データ ---
-MARUNOUCHI_MAIN_STATIONS = [
-    '荻窪', '南阿佐ケ谷', '新高円寺', '東高円寺', '新中野', '中野坂上', '西新宿', '新宿', 
-    '新宿三丁目', '新宿御苑前', '四谷三丁目', '四ツ谷', '赤坂見附', '国会議事堂前', '霞ケ関', 
-    '銀座', '東京', '大手町', '淡路町', '御茶ノ水', '本郷三丁目', '後楽園', '茗荷谷', '新大塚', '池袋'
-]
-MARUNOUCHI_BRANCH_STATIONS = ['方南町', '中野富士見町', '中野新橋', '中野坂上']
-MARUNOUCHI_TURNING_STATIONS = { 
-    '池袋', '茗荷谷', '御茶ノ水', '銀座', '四谷三丁目', '新宿三丁目', '新宿', 
-    '中野坂上', '新中野', '荻窪', '中野富士見町', '方南町'
-}
-# --- 千代田線データ ---
-CHIYODA_STATIONS = [ # 本線
+# --- 千代田線データ (これだけ残す) ---
+CHIYODA_STATIONS = [
     '代々木上原', '代々木公園', '明治神宮前', '表参道', '乃木坂', '赤坂', '国会議事堂前',
     '霞ケ関', '日比谷', '二重橋前', '大手町', '新御茶ノ水', '湯島', '根津', '千駄木',
-    '西日暮里', '町屋', '北千住', '綾瀬', 'JR常磐線内'
+    '西日暮里', '町屋', '北千住', '綾瀬', '常磐線内'
 ]
 CHIYODA_TURNING_STATIONS = {
-    '代々木上原', '代々木公園', '明治神宮前', '表参道', '霞ケ関', '大手町', '湯島', '北千住', '綾瀬', 'JR常磐線内'
+    '代々木上原', '代々木公園', '表参道', '霞ケ関', '大手町', '湯島', '北千住', '綾瀬' # 常磐線内は折り返し不可とする
 }
 
-# --- 副都心線データ ---
-FUKUTOSHIN_STATIONS = [ 
-    '和光市', '地下鉄成増', '地下鉄赤塚', '氷川台', '小竹向原', '千川', '要町', '池袋', 
-    '雑司が谷', '西早稲田', '東新宿', '新宿三丁目', '北参道', '明治神宮前', '渋谷',
-]
-FUKUTOSHIN_TURNING_STATIONS = {
-    '和光市', '地下鉄成増', '小竹向原', '池袋', '新宿三丁目', '渋谷'
-}
+# --- 状態保存用 ---
+last_metro_statuses: Dict[str, str] = {}
 
-last_metro_statuses = {}
+# --- ヘルパー関数 (折り返し駅探索) ---
+def _find_nearest_turning_station(station_list: List[str], turning_stations: set, start_index: int, direction: int) -> Optional[str]:
+    """指定された駅リストを、指定された方向に探索し、折り返し可能な最寄り駅を探す"""
+    print(f"\n--- [HELPER INTERROGATION] ---", flush=True) # デバッグログ付き
+    print(f"  > Task: Find nearest turning station", flush=True)
+    print(f"  > Station List Provided (first 5): {station_list[:5]}", flush=True)
+    print(f"  > Turning Stations Provided: {turning_stations}", flush=True)
+    print(f"  > Start Index: {start_index}", flush=True)
+    print(f"  > Search Direction: {direction}", flush=True)
 
-# 折り返し可能な最寄り駅を探すヘルパー関数
-def _find_nearest_turning_station(station_list, turning_stations, start_index, direction):
-    """
-    指定された駅リストを、指定された方向に探索し、折り返し可能な最寄り駅を探す
-    """
     current_index = start_index
+    step_count = 0
     while 0 <= current_index < len(station_list):
+        step_count += 1
         station_name = station_list[current_index]
+        print(f"  Step {step_count}: Checking index {current_index} ('{station_name}')...", flush=True)
+        
         if station_name in turning_stations:
-            return station_name # 見つかったらその駅名を返す
+            print(f"    -> FOUND! '{station_name}' is in the turning list.", flush=True)
+            print(f"--- [HELPER REPORT] Found: '{station_name}' ---\n", flush=True)
+            return station_name
+            
         current_index += direction
-    return None # 見つからなかった場合
+        if step_count > len(station_list) + 5: # 無限ループ防止
+             print(f"    -> ERROR: Too many steps. Aborting search.", flush=True)
+             break
+             
+    print(f"  -> Reached end of list or aborted.", flush=True)
+    print(f"--- [HELPER REPORT] Found: None ---\n", flush=True)
+    return None
 
-# --- 3. メイン関数 ---
-def check_tokyo_metro_info():
+# --- メイン関数 (千代田線特化・デバッグモード) ---
+def check_tokyo_metro_info() -> Optional[List[str]]:
     global last_metro_statuses
-    notification_messages = []
+    notification_messages: List[str] = []
+    SIMULATE_CHIYODA_ACCIDENT = False # ★★★ テスト実行時はTrue ★★★
 
     try:
         params = {"odpt:operator": "odpt.Operator:TokyoMetro", "acl:consumerKey": API_TOKEN}
         response = requests.get(API_ENDPOINT, params=params, timeout=30)
         response.raise_for_status()
-        info_data = response.json()
+        try: info_data: Any = response.json()
+        except requests.exceptions.JSONDecodeError as json_err: return None
+        if not isinstance(info_data, list): return None
 
-        for line_info in info_data:
-            line_id = line_info.get("odpt:railway")
-            current_status = line_info.get("odpt:trainInformationText", {}).get("ja")
-            if not line_id or not current_status: continue
-            
+        info_dict: Dict[str, Dict[str, Any]] = {}
+        for item in info_data:
+             if isinstance(item, dict) and item.get("odpt:railway") and isinstance(item.get("odpt:trainInformationText"), dict) and item.get("odpt:trainInformationText", {}).get("ja"):
+                 info_dict[item["odpt:railway"]] = item
+
+        for line_id, line_info in info_dict.items():
+            # --- 千代田線以外は完全に無視 ---
+            if line_id != "odpt.Railway:TokyoMetro.Chiyoda":
+                continue
+
+            current_status: str = line_info["odpt:trainInformationText"]["ja"]
+
+            if SIMULATE_CHIYODA_ACCIDENT:
+                print("--- [SIMULATION] Injecting Chiyoda accident info ---", flush=True)
+                current_status = "12時34分頃、赤坂駅で(これはテスト文面です)のため、運転を見合わせています。"
+                last_metro_statuses[line_id] = "dummy" # 強制更新
+
             if current_status != last_metro_statuses.get(line_id):
                 last_metro_statuses[line_id] = current_status
                 
-                if "運転を見合わせています" not in current_status: continue
-
-                line_name_jp = ""
-                station_list = []
-                turning_stations = set()
-                is_branch_line = False
-
-                if line_id == "odpt.Railway:TokyoMetro.Ginza":
-                    line_name_jp = "銀座線"
-                    station_list = GINZA_LINE_STATIONS
-                    turning_stations = GINZA_LINE_TURNING_STATIONS
-                
-                elif line_id == "odpt.Railway:TokyoMetro.Chiyoda":
+                if "運転を見合わせています" in current_status:
                     line_name_jp = "千代田線"
                     station_list = CHIYODA_STATIONS
                     turning_stations = CHIYODA_TURNING_STATIONS
-                
-                elif line_id == "odpt.Railway:TokyoMetro.Marunouchi":
-                    line_name_jp = "丸ノ内線"
-                    turning_stations = MARUNOUCHI_TURNING_STATIONS
-                
-                elif line_id == "odpt.Railway:TokyoMetro.Fukutoshin":
-                    line_name_jp = "副都心線"
-                    station_list = FUKUTOSHIN_STATIONS
-                    turning_stations = FUKUTOSHIN_TURNING_STATIONS
-                    
-                    match_between = re.search(r'(.+?)駅～(.+?)駅', current_status)
-                    match_at = re.search(r'(.+?)駅で', current_status)
-                    stop_station = ""
-                    if match_between: stop_station = match_between.group(1)
-                    elif match_at: stop_station = match_at.group(1)
+                    turn_back_1, turn_back_2 = None, None
+                    status_to_check: str = current_status
 
-                    if stop_station in MARUNOUCHI_BRANCH_STATIONS:
-                        station_list = MARUNOUCHI_BRANCH_STATIONS
-                        is_branch_line = True
-                    else:
-                        station_list = MARUNOUCHI_MAIN_STATIONS
-                
-                else:
-                    continue
+                    try:
+                        # --- 最終尋問コード ---
+                        print(f"\n--- [FINAL鑑定 @ {line_name_jp}] ---", flush=True)
+                        
+                        match_between = re.search(r'([^\s～、]+?)駅～([^\s～、]+?)駅間(?:の)?', status_to_check)
+                        match_at = re.search(r'([^\s、]+?)駅で(?:の)?', status_to_check) # 読点(、)も除外
+                        match_between_result = "Success" if match_between else "Failed"
+                        match_at_result = "Success" if match_at else "Failed"
+                        print(f"  > Regex Check: match_between={match_between_result}, match_at={match_at_result}", flush=True)
 
-                turn_back_1, turn_back_2 = None, None
-                match_between = re.search(r'(.+?)駅～(.+?)駅', current_status)
-                match_at = re.search(r'(.+?)駅で', current_status)
+                        station_to_compare = ""
+                        station1, station2 = "", ""
 
-                try:
-                    turn_back_1, turn_back_2 = None, None # 先に初期化
+                        if match_between:
+                            station1 = match_between.group(1).strip()
+                            station2 = match_between.group(2).strip()
+                            print(f"  > Extracted (between): '{station1}', '{station2}'", flush=True)
+                            station_to_compare = station1
+                        elif match_at:
+                            station = match_at.group(1).strip()
+                            print(f"  > Extracted (at): '{station}'", flush=True)
+                            station_to_compare = station
 
-                    if match_between:
-                        station1, station2 = match_between.groups()
-                        # 駅名がリストに存在するか確認してからインデックスを取得
-                        if station1 in station_list and station2 in station_list:
-                            idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                            boundary_idx_1 = min(idx1, idx2)
-                            boundary_idx_2 = max(idx1, idx2)
+                        if station_to_compare:
+                            print(f"  > Station List Provided (showing raw representation):", flush=True)
+                            list_repr = [repr(s) for s in station_list]
+                            print(f"    - {list_repr}", flush=True)
+                            station_repr = repr(station_to_compare)
+                            print(f"  > Station Name to Compare (raw representation): {station_repr}", flush=True)
                             
-                            # 境界駅(手前側)自体が折り返し可能かチェック
-                            station_before = station_list[boundary_idx_1]
-                            if station_before in turning_stations:
-                                turn_back_1 = station_before
-                            else: # ダメなら外側を探索
-                                turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_1 - 1, -1)
-                                
-                            # 境界駅(奥側)自体が折り返し可能かチェック
-                            station_after = station_list[boundary_idx_2]
-                            if station_after in turning_stations:
-                                turn_back_2 = station_after
-                            else: # ダメなら外側を探索
-                                turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, boundary_idx_2 + 1, 1)
+                            is_in_list = station_to_compare in station_list
+                            print(f"  > FINAL LIST CHECK: Is raw name above found in raw list above? -> {is_in_list}", flush=True)
+                            
+                            if is_in_list:
+                                print(f"    -> Station FOUND in list. Proceeding to find index and turning stations.", flush=True)
+                                if match_between:
+                                    idx1, idx2 = station_list.index(station1), station_list.index(station2)
+                                    b_idx1, b_idx2 = min(idx1, idx2), max(idx1, idx2)
+                                    s_before, s_after = station_list[b_idx1], station_list[b_idx2]
+                                    if s_before in turning_stations: turn_back_1 = s_before
+                                    else: turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, b_idx1 - 1, -1)
+                                    if s_after in turning_stations: turn_back_2 = s_after
+                                    else: turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, b_idx2 + 1, 1)
+                                elif match_at:
+                                    idx = station_list.index(station)
+                                    turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
+                                    turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                            else:
+                                 print(f"  > !!! CRITICAL: Station extracted IS NOT FOUND in the station_list. Skipping index search. !!!", flush=True)
+                        else:
+                            print(f"  > No station name extracted to compare.", flush=True)
 
-                    elif match_at:
-                        station = match_at.group(1)
-                        # 駅名がリストに存在するか確認してからインデックスを取得
-                        if station in station_list:
-                            idx = station_list.index(station)
-                            # 駅で事故の場合は、必ず外側を探索
-                            turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
-                            turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                        print(f"--- [FINAL鑑定 END] ---\n", flush=True)
 
-                except ValueError:
-                    # 駅名が station_list に見つからなかった場合など
-                    print(f"--- [METRO WARNING] Failed to find station index for {line_name_jp}", flush=True)
-                    pass # エラーが出ても処理を続ける
+                    except ValueError as e:
+                         print(f"--- [METRO WARNING] Failed to find index. Station: '{station_to_compare}'. Error: {e}", flush=True)
+                         pass
+                    except Exception as find_err:
+                         print(f"--- [METRO WARNING] Error during turning station search for {line_name_jp}: {find_err}", flush=True)
+                         pass
 
-                # ▼▼▼▼▼ ここからが新しい通知作成ロジック ▼▼▼▼▼
-                
-                # 1. タイトルを作成
-                message_title = f"【{line_name_jp} 折返し区間予測】"
-                
-                running_sections = []
-                if is_branch_line:
+                    # --- メッセージ作成 ---
+                    message_title = f"【{line_name_jp} 折返し区間予測】"
+                    print(f"--- [MSG CREATE] Title: {message_title}", flush=True)
+                    running_sections = []
                     line_start, line_end = station_list[0], station_list[-1]
-                else:
-                    line_start, line_end = station_list[0], station_list[-1]
-
-                if turn_back_1 and turn_back_1 != line_start:
-                    running_sections.append(f"・{line_start}～{turn_back_1}")
-                if turn_back_2 and turn_back_2 != line_end:
-                    running_sections.append(f"・{turn_back_2}～{line_end}")
-
-                reason_text = ""
-                reason_match = re.search(r'頃、(.+?)のため', current_status)
-                if reason_match:
-                    reason = reason_match.group(1)
-                    reason_text = f"\nこれは{reason}の影響です。"
-
-                disclaimer = "\n状況により折返し運転が実施されない場合があります。"
-
-                final_message = message_title
-                if running_sections:
-                    sections_text = "\n".join(running_sections)
-                    final_message += f"\n{sections_text}"
-                
-                final_message += reason_text
-                final_message += disclaimer
-                
-                notification_messages.append(final_message)
-
+                    print(f"--- [MSG CREATE] Turnback Stations: 1='{turn_back_1}', 2='{turn_back_2}'", flush=True)
+                    print(f"--- [MSG CREATE] Line Start='{line_start}', Line End='{line_end}'", flush=True)
+                    if turn_back_1 and turn_back_1 != line_start:
+                        section1 = f"・{line_start}～{turn_back_1}"
+                        print(f"--- [MSG CREATE] Calculated Section 1: {section1}", flush=True)
+                        running_sections.append(section1)
+                    if turn_back_2 and turn_back_2 != line_end:
+                        section2 = f"・{turn_back_2}～{line_end}"
+                        print(f"--- [MSG CREATE] Calculated Section 2: {section2}", flush=True)
+                        running_sections.append(section2)
+                    
+                    reason_text = ""
+                    reason_match = re.search(r'頃、(.+?)のため', current_status)
+                    if reason_match:
+                        reason = reason_match.group(1)
+                        reason_text = f"\nこれは{reason}の影響です。"
+                        print(f"--- [MSG CREATE] Extracted Reason: {reason}", flush=True)
+                    disclaimer = "\n状況により折返し運転が実施されない場合があります。"
+                    
+                    final_message = message_title
+                    if running_sections:
+                        sections_text = "\n".join(running_sections)
+                        print(f"--- [MSG CREATE] Joining sections: {sections_text}", flush=True)
+                        final_message += f"\n{sections_text}"
+                    else:
+                        print(f"--- [MSG CREATE] No running sections to add.", flush=True)
+                        final_message += "\n(運転区間不明)"
+                    final_message += reason_text
+                    final_message += disclaimer
+                    print(f"--- [MSG CREATE] Final Message Assembled (before append):\n{final_message}\n---", flush=True)
+                    notification_messages.append(final_message)
+        
         return notification_messages
 
+    except requests.exceptions.RequestException as req_err: return None
     except Exception as e:
-        print(f"--- [METRO] ERROR: {e} ---", flush=True)
+        print(f"--- [METRO] ERROR: An unexpected error occurred in check_tokyo_metro_info: {e}", flush=True)
         return None

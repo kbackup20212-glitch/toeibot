@@ -9,6 +9,7 @@ load_dotenv()
 # --- これ以降に、他のimport文を続ける ---
 import nextcord as discord
 import asyncio
+from jr_east_delay_watcher import check_delay_increase
 from flask import Flask
 from threading import Thread
 
@@ -75,11 +76,16 @@ async def periodic_check():
         metro_messages = await bot.loop.run_in_executor(None, check_tokyo_metro_info)
         if metro_messages: all_notifications.extend(metro_messages)
 
+        # 6. JR東日本 運転見合わせ検知
+        delay_watcher_messages = await bot.loop.run_in_executor(None, check_delay_increase)
+        if delay_watcher_messages:
+            all_notifications.extend(delay_watcher_messages)
+
         if all_notifications:
             for msg in all_notifications:
                 await channel.send(msg)
         
-        await asyncio.sleep(60)
+        await asyncio.sleep(20)
 
 # (Botの起動部分は変更なし)
 keep_alive()
