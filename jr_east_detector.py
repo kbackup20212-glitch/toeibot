@@ -241,6 +241,7 @@ STATION_DICT = {
     #りんかい線・埼京線・川越線(新木場～川越)
     'Kawagoe': '川越', 'NishiKawagoe': '西川越', 'Matoba': '的場', 'Kasahata': '笠幡',
     'MusashiTakahagi': '武蔵高萩', 'Komagawa': '高麗川', 'MinamiFuruya': '南古谷',
+    'NishiOmiya' : '西大宮',
     'Sashiogi': '指扇', 'Nisshin': '日進', 'Omiya': '大宮', 'KitaYono': '北与野',
     'YonoHommachi': '与野本町', 'MinamiYono': '南与野', 'NakaUrawa': '中浦和',
     'MusashiUrawa': '武蔵浦和', 'KitaToda': '北戸田', 'Toda': '戸田', 'TodaKoen': '戸田公園',
@@ -340,11 +341,13 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Rapid', 'ToyoKatsutadai'),
             ('odpt.TrainType:JR-East.Rapid', 'Nakano'),
             ('odpt.TrainType:JR-East.Rapid', 'Mitaka'),
+            ('odpt.TrainType:JR-East.CommuterRapid', 'Nakano'),
+            ('odpt.TrainType:JR-East.CommuterRapid', 'Mitaka'),
         }
     },
     { # 京浜東北根岸線
         "id": "odpt.Railway:JR-East.KeihinTohokuNegishi",
-        "name": "京浜東北線",
+        "name": "京浜東北/根岸線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
             ('odpt.TrainType:JR-East.Local', 'Hashimoto'),
@@ -713,7 +716,7 @@ JR_LINES_TO_MONITOR = [
     },
     {# 埼京線
         "id": "odpt.Railway:JR-East.SaikyoKawagoe",
-            "name": "埼京線",
+            "name": "埼京/川越線",
             "regular_trips": { 
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
             ('odpt.TrainType:JR-East.Local', 'Komagawa'),
@@ -765,12 +768,12 @@ JR_LINES_TO_MONITOR = [
         "regular_trips": {
            ('odpt.TrainType:JR-East.Local', 'YoyogiUehara'),
            ('odpt.TrainType:JR-East.Local', 'Karakida'),
-           ('odpt.TrainType:JR-East.Local', 'Mukogaokayuen'),
-           ('odpt.TrainType:JR-East.Local', 'Seijogakuenmae'),
+           ('odpt.TrainType:JR-East.Local', 'MukogaokaYuen'),
+           ('odpt.TrainType:JR-East.Local', 'SeijogakuenMae'),
            ('odpt.TrainType:JR-East.Local', 'KitaSenju'),
            ('odpt.TrainType:JR-East.Local', 'Isehara'),
            ('odpt.TrainType:JR-East.Local', 'Kasumigaseki'),
-           ('odpt.TrainType:JR-East.Local', 'Meijijinguumae'),
+           ('odpt.TrainType:JR-East.Local', 'MeijiJinguumae'),
            ('odpt.TrainType:JR-East.Local', 'HonAtsugi'),
            ('odpt.TrainType:JR-East.Local', 'Matsudo'),
            ('odpt.TrainType:JR-East.Local', 'Kashiwa'),
@@ -857,7 +860,8 @@ def process_irregularities(train_data, line_config):
              # ルール1: 特定路線の Local は「普通」
              if train_type_id == 'odpt.TrainType:JR-East.Local' and \
                 line_id in ['odpt.Railway:JR-East.Takasaki', 
-                             'odpt.Railway:JR-East.Utsunomiya', 
+                             'odpt.Railway:JR-East.Utsunomiya',
+                             'odpt.Railway:JR-East.ShonanShinjuku', 
                              'odpt.Railway:JR-East.Tokaido']:
                  train_type_jp = "普通"
              
