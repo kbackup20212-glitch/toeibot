@@ -233,7 +233,16 @@ def check_jr_east_info() -> Optional[List[str]]:
                 skip_prediction = False
 
                 # ▼▼▼ 予測処理ブロック ▼▼▼
-                if line_id in JR_LINE_PREDICTION_DATA and "運転を見合わせています" in current_status:
+                # APIからステータス情報を取得 (日本語)
+                current_info_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
+
+                # 運転見合わせテキストがあり、かつ、ステータスが「第2報以降」でない場合のみ予測
+                if line_id in JR_LINE_PREDICTION_DATA and \
+                    "運転を見合わせています" in current_status and \
+                    current_info_status != "運転再開見込" and \
+                    "運転再開" not in (current_info_status or ""): # "一部運転再開"なども除外
+    
+                    print(f"--- [PREDICTION START @ {line_id}] Status is '{current_info_status}'. Proceeding with prediction. ---", flush=True)
                     # このブロックで初めて line_data などを定義する
                     line_data = JR_LINE_PREDICTION_DATA[line_id]
                     line_name_jp = line_data.get("name", line_id)

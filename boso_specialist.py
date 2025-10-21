@@ -45,7 +45,7 @@ def _get_boso_limited_express_nickname(train_number_str):
         return "特急さざなみ"
     if (1051 <= num <= 2000) or (9072 <= num <= 9099) or (9201 <= num <= 9209): 
         return "特急わかしお"
-    if (2001 <= num <= 2099): 
+    if (2001 <= num <= 2099) or (2201 <= num <= 2299): 
         return "特急NEX"
     if (4001 <= num <= 4199) or (9301 <= num <= 9309): 
         return "特急しおさい"
