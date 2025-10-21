@@ -39,7 +39,7 @@ def _get_boso_limited_express_nickname(train_number_str):
     if not match: 
         return "特急"
     num = int(match.group(0))
-    if num in [5003, 5004]: 
+    if num in [5003, 5050]: 
         return "特急あずさ"
     if (1001 <= num <= 1050): 
         return "特急さざなみ"

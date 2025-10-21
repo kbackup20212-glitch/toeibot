@@ -159,7 +159,7 @@ def check_jr_east_info() -> Optional[List[str]]:
     # Trueにすると、指定した路線の事故を強制的に発生させる
     SIMULATE_ACCIDENTS = False
     SIMULATION_DATA = {
-    "odpt.Railway:JR-East.ChuoRapid": "中央線快速電車は、西国分寺～国立駅間でのテスト文面の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
+    "odpt.Railway:JR-East.Takasaki": "高崎線は、８時４４分頃　北鴻巣〜鴻巣駅間での踏切安全確認の影響で、東京〜高崎駅間の上下線で運転を見合わせています。運転再開見込は立っていません。",
     "odpt.Railway:JR-East.ChuoSobuLocal": "平常運行",
     # 他のテストしたい路線とテキストをここに追加
 }
@@ -304,99 +304,67 @@ def check_jr_east_info() -> Optional[List[str]]:
                     if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
                         try:
-                            # 1回目の正規表現 (あえて不完全なまま)
-                            station1, station2, station = None, None, None # 初期化
+                            # ▼▼▼▼▼ ここから最終尋問コード ▼▼▼▼▼
+                            print(f"\n--- [FINAL INTERROGATION @ {line_name_jp}] ---", flush=True)
+                            print(f"  > Status Text Being Checked (Raw): {repr(status_to_check)}", flush=True) # 生のテキストを表示
 
-                            # パターン1: 「駅間」を探す (スペース等を考慮)
-                            # 例: 「熊谷 ～ 籠原駅間」 「熊谷駅～籠原駅間」
-                            match_between = re.search(r'([^\s、。～]+?)\s*駅?\s*～\s*([^\s、。～]+?)\s*駅間', status_to_check)
+                            # 使用する正規表現パターン
+                            pattern_between = r'([^\s～、〜]+?)\s*駅?\s*[～〜]\s*([^\s、。～〜]+?)\s*駅間' # ← [～〜] に変更
+                            match_between = re.search(pattern_between, status_to_check)
                             if match_between:
                                 station1_raw = match_between.group(1)
                                 station2_raw = match_between.group(2)
-                                # 捕まえた文字列から、最後の単語だけを抜き出す
                                 station1 = re.split(r'[、\s]', station1_raw)[-1].strip()
                                 station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
                                 print(f"  > Regex found 'Between': '{station1}' ~ '{station2}'", flush=True)
 
-                            # パターン2: 「駅で」を探す (スペース等を考慮)
-                            # 例: 「熊谷駅 で」「熊谷 駅で」
-                            # match_between が成功しても、match_at も試す (稀なケース対応)
-                            match_at = re.search(r'([^\s、。～]+?)\s*駅\s*で', status_to_check)
+                            # パターン2: 「駅で」を探す (チルダの種類を両方考慮)
+                            pattern_at = r'([^\s、。～〜]+?)\s*駅\s*で' # ← 除外文字に 〜 を追加
+                            match_at = re.search(pattern_at, status_to_check)
                             if match_at:
                                 station_raw = match_at.group(1)
-                                # 捕まえた文字列から、最後の単語だけを抜き出す
                                 station = re.split(r'[、\s]', station_raw)[-1].strip()
                                 print(f"  > Regex found 'At': '{station}'", flush=True)
-
                             station_to_compare = ""
-                            if station: # 「駅で」が見つかった場合を優先
+
+                            if match_between:
+                                station1_raw = match_between.group(1)
+                                station2_raw = match_between.group(2)
+                                station1 = re.split(r'[、\s]', station1_raw)[-1].strip()
+                                station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
+                                print(f"  > Extracted (between): Raw='{station1_raw}'/'{station2_raw}', Refined='{station1}'/'{station2}'", flush=True)
+                                station_to_compare = station1
+                            elif match_at:
+                                station_raw = match_at.group(1)
+                                station = re.split(r'[、\s]', station_raw)[-1].strip()
+                                print(f"  > Extracted (at): Raw='{station_raw}', Refined='{station}'", flush=True)
                                 station_to_compare = station
-                            elif station1: # 「駅間」が見つかった場合
-                                station_to_compare = station1 # 代表して最初の駅
-
-                            # ▼▼▼▼▼ 逆転の発想チェック ▼▼▼▼▼
-                            if line_id == "odpt.Railway:JR-East.ChuoRapid" and station_to_compare and station_to_compare.startswith("中央・総武各"):
-                                print(f"--- [JR INFO] ChuoRapid: Detected ambiguous station '{station_to_compare}'. Switching to Sobu status. ---", flush=True)
-                                linked_line_id = "odpt.Railway:JR-East.ChuoSobuLocal"
-                                linked_status_raw = None
-                                if SIMULATE_ACCIDENTS and linked_line_id in SIMULATION_DATA:
-                                    linked_status_raw = SIMULATION_DATA[linked_line_id]
-                                elif linked_line_id in info_dict:
-                                     linked_status_raw = info_dict[linked_line_id].get("odpt:trainInformationText", {}).get("ja")
-
-                                if linked_status_raw:
-                                    status_to_check = linked_status_raw.strip() # ★★★ ここで情報を上書き ★★★
-                                    print(f"--- [JR INFO] Now checking Sobu status: '{status_to_check}'", flush=True)
-                                    # ★★★ もう一度、正規表現をかけ直す ★★★
-                                    match_between = re.search(r'([^\s～、]+?)駅～([^\s～、]+?)駅間(?:の)?', status_to_check)
-                                    match_at = re.search(r'([^\s、]+?)駅で(?:の)?', status_to_check)
-                                    station1, station2, station = None, None, None # 再初期化
-                                    if match_between:
-                                        station1 = match_between.group(1).strip()
-                                        station2 = match_between.group(2).strip()
-                                        station_to_compare = station1
-                                        print(f"  > Second Regex (between): '{station1}', '{station2}'", flush=True)
-                                    elif match_at:
-                                        station = match_at.group(1).strip()
-                                        station_to_compare = station
-                                        print(f"  > Second Regex (at): '{station}'", flush=True)
-                                else:
-                                    print(f"--- [JR INFO] Could not find Sobu status to switch.", flush=True)
-                                    station_to_compare = "" # 駅名不明として扱う
-                            # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+                            else:
+                                print(f"  > Regex failed to extract any station.", flush=True) # ここに来ているはず
 
                             if station_to_compare:
-                                # 生のリストと駅名を表示
-                                list_repr = [repr(s) for s in station_list]
-                                print(f"  > Station List (raw): {list_repr[:5]}...", flush=True)
-                                station_repr = repr(station_to_compare)
-                                print(f"  > Station to Check (raw): {station_repr}", flush=True)
-
+                                # ★★★ リスト照合 ★★★
                                 is_in_list = station_to_compare in station_list
-                                print(f"  > Is Station in List?: {is_in_list}", flush=True)
-                                
                                 if is_in_list:
+                                    # ★★★ ここからが復活した心臓部 ★★★
                                     if match_between:
+                                        # Noneチェック
+                                        if station1 is None or station2 is None: raise ValueError("Station names (between) are None")
                                         idx1, idx2 = station_list.index(station1), station_list.index(station2)
                                         b_idx1, b_idx2 = min(idx1, idx2), max(idx1, idx2)
-                                        print(f"  > Index Found (between): {b_idx1}, {b_idx2}", flush=True)
                                         s_before, s_after = station_list[b_idx1], station_list[b_idx2]
-                                        # 境界駅チェック
                                         if s_before in turning_stations: turn_back_1 = s_before
                                         else: turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, b_idx1 - 1, -1)
                                         if s_after in turning_stations: turn_back_2 = s_after
                                         else: turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, b_idx2 + 1, 1)
-                                        print(f"  > Calculated Turnbacks (between): 1='{turn_back_1}', 2='{turn_back_2}'", flush=True)
                                     elif match_at:
+                                        # Noneチェック
+                                        if station is None: raise ValueError("Station name (at) is None")
                                         idx = station_list.index(station)
-                                        print(f"  > Index Found (at): {idx}", flush=True)
                                         turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                         turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                                        print(f"  > Calculated Turnbacks (at): 1='{turn_back_1}', 2='{turn_back_2}'", flush=True)
-                                else:
-                                     print(f"  > Station NOT FOUND in list. Skipping calculation.", flush=True)
                             else:
-                                print(f"  > No valid station extracted. Skipping calculation.", flush=True)
+                                print(f"  > No valid station extracted to compare. Skipping calculation.", flush=True) # ここにも来ているはず
 
                             print(f"--- [Prediction Calculation END] ---\n", flush=True)
 
@@ -443,7 +411,7 @@ def check_jr_east_info() -> Optional[List[str]]:
                         elif not reason_text:
                             reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status)
                             if reason_match_simple:
-                                reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
+                                reason_text = f"\nこれは{reason_match_simple.group(1)}の影響です。"
 
                         disclaimer = "\n状況により折返し運転が実施されない場合があります。"
                         
