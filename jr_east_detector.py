@@ -683,6 +683,7 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Rapid', 'Narita'),
             ('odpt.TrainType:JR-East.Rapid', 'NaritaAirportTerminal1'),
             ('odpt.TrainType:JR-East.Rapid', 'Naruto'),
+            ('odpt.TrainType:JR-East.Rapid', 'Chiba'),
             ('odpt.TrainType:JR-East.Rapid', 'Tsudanuma'),
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.Rapid', 'Shinagawa'),
