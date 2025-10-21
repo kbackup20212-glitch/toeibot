@@ -157,10 +157,10 @@ def check_jr_east_info() -> Optional[List[str]]:
 
     # ▼▼▼▼▼ ここからがシミュレーションコード ▼▼▼▼▼
     # Trueにすると、指定した路線の事故を強制的に発生させる
-    SIMULATE_ACCIDENTS = False
+    SIMULATE_ACCIDENTS = True
     SIMULATION_DATA = {
-    "odpt.Railway:JR-East.ChuoRapid": "中央線快速電車は、中央・総武各駅停車での人身事故の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
-    "odpt.Railway:JR-East.ChuoSobuLocal": "中央・総武各駅停車は、荻窪駅での人身事故の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
+    "odpt.Railway:JR-East.ChuoRapid": "中央線快速電車は、西国分寺～国立駅間でのテスト文面の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
+    "odpt.Railway:JR-East.ChuoSobuLocal": "平常運行",
     # 他のテストしたい路線とテキストをここに追加
 }
     # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -296,24 +296,34 @@ def check_jr_east_info() -> Optional[List[str]]:
                         turn_back_1, turn_back_2 = None, None
                         try:
                             # 1回目の正規表現 (あえて不完全なまま)
-                            match_between = re.search(r'(.+?)駅～(.+?)駅間', status_to_check)
-                            match_at = re.search(r'(.+?)駅で', status_to_check)
+                            station1, station2, station = None, None, None # 初期化
 
-                            station_to_compare = ""
-                            station1, station2, station = None, None, None
-
+                            # パターン1: 「駅間」を探す (スペース等を考慮)
+                            # 例: 「熊谷 ～ 籠原駅間」 「熊谷駅～籠原駅間」
+                            match_between = re.search(r'([^\s、。～]+?)\s*駅?\s*～\s*([^\s、。～]+?)\s*駅間', status_to_check)
                             if match_between:
                                 station1_raw = match_between.group(1)
                                 station2_raw = match_between.group(2)
+                                # 捕まえた文字列から、最後の単語だけを抜き出す
                                 station1 = re.split(r'[、\s]', station1_raw)[-1].strip()
                                 station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
-                                station_to_compare = station1
-                                print(f"  > Initial Regex (between): '{station1}', '{station2}'", flush=True)
-                            elif match_at:
+                                print(f"  > Regex found 'Between': '{station1}' ~ '{station2}'", flush=True)
+
+                            # パターン2: 「駅で」を探す (スペース等を考慮)
+                            # 例: 「熊谷駅 で」「熊谷 駅で」
+                            # match_between が成功しても、match_at も試す (稀なケース対応)
+                            match_at = re.search(r'([^\s、。～]+?)\s*駅\s*で', status_to_check)
+                            if match_at:
                                 station_raw = match_at.group(1)
+                                # 捕まえた文字列から、最後の単語だけを抜き出す
                                 station = re.split(r'[、\s]', station_raw)[-1].strip()
+                                print(f"  > Regex found 'At': '{station}'", flush=True)
+
+                            station_to_compare = ""
+                            if station: # 「駅で」が見つかった場合を優先
                                 station_to_compare = station
-                                print(f"  > Initial Regex (at): '{station}'", flush=True)
+                            elif station1: # 「駅間」が見つかった場合
+                                station_to_compare = station1 # 代表して最初の駅
 
                             # ▼▼▼▼▼ 逆転の発想チェック ▼▼▼▼▼
                             if line_id == "odpt.Railway:JR-East.ChuoRapid" and station_to_compare and station_to_compare.startswith("中央・総武各"):
@@ -405,21 +415,22 @@ def check_jr_east_info() -> Optional[List[str]]:
                             if turn_back_2 and turn_back_2 != line_end: running_sections.append(f"・{turn_back_2}～{line_end}")
                         
                         reason_text = ""
-                        # まず、全体の構造「(場所)での(原因)の影響で」を探す
-                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+                        # パターンA: 「〇〇(駅)?～××駅間での△△の影響で」 (1つ目の「駅」を任意に)
+                        reason_match_between = re.search(r'([^\s～、]+?)駅?～([^\s～、]+?)駅間での(.+?)の影響で', status_to_check)
+                        # パターンB: 「〇〇駅での△△の影響で」
+                        reason_match_at = re.search(r'([^\s、]+?)駅での(.+?)の影響で', status_to_check)
 
-                        if reason_match:
-                            location_part = reason_match.group(1).strip() # 「駅」または「駅間」までの部分全体
-                            cause = reason_match.group(2).strip() # 原因の部分
-
-                            # location_part から、最後の単語（＝駅名や区間名）だけを抜き出す
-                            # 例：「中央線快速電車は、西国分寺駅」→「西国分寺駅」
-                            # 例：「中央線快速電車は、 西国分寺～国立駅間」→「西国分寺～国立駅間」
-                            location_elements = re.split(r'[、\s]', location_part) # 読点や空白で区切る
-                            actual_location = location_elements[-1] if location_elements else location_part # 最後の要素を取得
-
-                            reason_text = f"\nこれは、{actual_location}での{cause}の影響です。"
-                        # 一致しない場合は、シンプルな抽出 (これは変更なし)
+                        if reason_match_between:
+                            station1 = reason_match_between.group(1).strip()
+                            station2 = reason_match_between.group(2).strip()
+                            cause = reason_match_between.group(3).strip()
+                            # 表示する際は「駅」を補完
+                            reason_text = f"\nこれは、{station1}駅～{station2}駅間での{cause}の影響です。"
+                        elif reason_match_at:
+                            station = reason_match_at.group(1).strip()
+                            cause = reason_match_at.group(2).strip()
+                            reason_text = f"\nこれは、{station}駅での{cause}の影響です。"
+                        # どちらにも一致しない場合は、シンプルな抽出
                         elif not reason_text:
                             reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status)
                             if reason_match_simple:

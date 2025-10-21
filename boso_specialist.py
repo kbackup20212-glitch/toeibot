@@ -3,7 +3,7 @@ import re
 # --- この専門家だけが知っている、総武快速線のルールブック ---
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急あずさ": {'Matsumoto', 'Chiba'},
-    "特急NEX": {'Ofuna', 'NaritaAirportTerminal1'},
+    "特急NEX": {'Shinjuku','Ofuna', 'NaritaAirportTerminal1'},
     "特急しおさい": {'Choshi', 'Sakura', 'Naruto', 'Tokyo'},
     "特急新宿さざなみ": {'Shinjuku', 'Tateyama'},
     "特急新宿わかしお": {'Shinjuku', 'Awakamogawa'},
@@ -14,7 +14,7 @@ LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
 }
 RAPID_REGULAR_DESTINATIONS = {
     "快速": {'Kimitsu','Sakura','KazusaIchinomiya','Narita','NaritaAirportTerminal1',
-            'Tsudanuma','Tokyo','Shinagawa','Ofuna','Yokosuka','Zushi','Kurihama'},
+            'Chiba','Tsudanuma','Tokyo','Shinagawa','Ofuna','Yokosuka','Zushi','Kurihama'},
     "快速B.B.BASE": {},
     "快速B.B.BASE佐倉・銚子": {},
     "快速B.B.BASE手賀沼": {},

@@ -91,6 +91,7 @@ STATION_DICT = {
     'Emi': '江見', 'Futomi': '太海',
 
     #総武本線
+    'ShinNihombashi': '新日本橋', 'Bakurocho': '馬喰町',
     'HigashiChiba': '東千葉', 'Tsuga': '都賀', 'Yotsukaido': '四街道', 'Monoi': '物井',
     'Sakura': '佐倉', 'MinamiShisui': '南酒々井', 'Enokido': '榎戸', 'Yachimata': '八街',
     'Hyuga': '日向', 'Naruto': '成東', 'Matsuo': '松尾', 'Yokoshiba': '横芝', 'Iigura': '飯倉',
@@ -101,7 +102,7 @@ STATION_DICT = {
     'Fukutawara': '福俵', 'Togane': '東金', 'Gumyo': '求名',
 
     #京葉線
-    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiomi': '潮見', 'KasaiRinkaikoen': '葛西臨海公園',
+    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiomi': '潮見', 'KasaiRinkaiPark': '葛西臨海公園',
     'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
     'ShinNarashino': '新習志野', 'Kaihimmakuhari': '海浜幕張', 'Kemigawahama': '検見川浜',
     'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと', 'Soga': '蘇我', 
@@ -673,7 +674,7 @@ JR_LINES_TO_MONITOR = [
         }
     },
     {
-        "id": "odpt.Railway:JR-East.Sobu",
+        "id": "odpt.Railway:JR-East.SobuRapid",
         "name": "総武快速線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Rapid', 'Kimitsu'),
@@ -730,6 +731,7 @@ JR_LINES_TO_MONITOR = [
             "name": "埼京/川越線",
             "regular_trips": { 
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
+            ('odpt.TrainType:JR-East.Local', 'Haijima'),
             ('odpt.TrainType:JR-East.Local', 'Komagawa'),
             ('odpt.TrainType:JR-East.Local', 'Kawagoe'),
             ('odpt.TrainType:JR-East.Local', 'Omiya'),
@@ -784,7 +786,7 @@ JR_LINES_TO_MONITOR = [
            ('odpt.TrainType:JR-East.Local', 'KitaSenju'),
            ('odpt.TrainType:JR-East.Local', 'Isehara'),
            ('odpt.TrainType:JR-East.Local', 'Kasumigaseki'),
-           ('odpt.TrainType:JR-East.Local', 'MeijiJinguumae'),
+           ('odpt.TrainType:JR-East.Local', 'MeijiJingumae'),
            ('odpt.TrainType:JR-East.Local', 'HonAtsugi'),
            ('odpt.TrainType:JR-East.Local', 'Matsudo'),
            ('odpt.TrainType:JR-East.Local', 'Kashiwa'),
