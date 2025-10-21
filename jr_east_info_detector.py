@@ -157,7 +157,7 @@ def check_jr_east_info() -> Optional[List[str]]:
 
     # ▼▼▼▼▼ ここからがシミュレーションコード ▼▼▼▼▼
     # Trueにすると、指定した路線の事故を強制的に発生させる
-    SIMULATE_ACCIDENTS = True
+    SIMULATE_ACCIDENTS = False
     SIMULATION_DATA = {
     "odpt.Railway:JR-East.ChuoRapid": "中央線快速電車は、西国分寺～国立駅間でのテスト文面の影響で、上下線で運転を見合わせています。運転再開は９時２０分頃を見込んでいます。",
     "odpt.Railway:JR-East.ChuoSobuLocal": "平常運行",
