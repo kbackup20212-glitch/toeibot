@@ -14,13 +14,13 @@ STATION_DICT = {
     # --- JR山手線 ---
     'Osaki': '大崎', 'Gotanda': '五反田', 'Meguro': '目黒', 'Ebisu': '恵比寿',
     'Shibuya': '渋谷', 'Harajuku': '原宿', 'Yoyogi': '代々木', 'Shinjuku': '新宿',
-    'Shin-Okubo': '新大久保', 'Takadanobaba': '高田馬場', 'Mejiro': '目白',
+    'ShinOkubo': '新大久保', 'Takadanobaba': '高田馬場', 'Mejiro': '目白',
     'Ikebukuro': '池袋', 'Otsuka': '大塚', 'Sugamo': '巣鴨', 'Komagome': '駒込',
-    'Tabata': '田端', 'Nishi-Nippori': '西日暮里', 'Nippori': '日暮里',
+    'Tabata': '田端', 'NishiNippori': '西日暮里', 'Nippori': '日暮里',
     'Uguisudani': '鶯谷', 'Ueno': '上野', 'Okachimachi': '御徒町',
     'Akihabara': '秋葉原', 'Kanda': '神田', 'Tokyo': '東京', 'Yurakucho': '有楽町',
     'Shimbashi': '新橋', 'Hamamatsucho': '浜松町', 'Tamachi': '田町',
-    'TakanawaGateway': '高輪ゲートウェイ', 'Shinagawa': '品川',
+    'TakanawaGateway': '高輪ｹﾞｰﾄｳｪｲ', 'Shinagawa': '品川',
 
     #中央快速線(大月以東)
     'Tokyo': '東京', 'Kanda': '神田', 'Ochanomizu': '御茶ノ水', 'Yotsuya': '四ツ谷', 

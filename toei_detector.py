@@ -83,7 +83,8 @@ STATION_DICT = {
     'Yahiro': '八広', 'Aoto': '青砥', 'KeiseiTakasago': '京成高砂', 'KeiseiKoiwa': '京成小岩',
     'Ichikawamama': '市川真間', 'HigashiNakayama': '東中山', 'KeiseiFunabashi': '京成船橋',
     'Funabashikeibajo': '船橋競馬場', 'KeiseiTsudanuma': '京成津田沼', 'Yachiyodai': '八千代台',
-    'KeiseiOwada': '京成大和田', 'KeiseiUsui': '京成臼井', 'Sogosando': '宗吾参道',
+    'KeiseiOwada': '京成大和田', 'KeiseiUsui': '京成臼井', 'KeiseiSakura': '京成佐倉', 
+    'Sogosando': '宗吾参道',
     'KeiseiNarita': '京成成田', 'HigashiNarita': '東成田', 'NaritaAirportTerminal2and3': '空港第２ビル',
     'NaritaAirportTerminal1': '成田空港', 'Yagiri': '矢切', 'HigashiMatsudo': '東松戸',
     'ShinKamagaya': '新鎌ヶ谷', 'NishiShiroi': '西白井', 'ChibaNewtownChuo': '千葉ニュータウン中央',
@@ -255,7 +256,6 @@ def process_toei_irregularities(train_data, line_config):
                         train_type_jp = ""
                     else:
                         train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
-                    train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
                     dest_station_jp = STATION_DICT.get(dest_station_en, dest_station_en)
                     
                     # 走行位置や遅延も取得できれば追加 (API仕様を確認)
@@ -277,7 +277,7 @@ def process_toei_irregularities(train_data, line_config):
                     if owner_id:
                         owner_name: str = TRAIN_OWNER_NAMES.get(owner_id, "")
                         if owner_name:
-                             owner_text = f" ({owner_name})" # 括弧付きで表示名を取得
+                             owner_text = f"{owner_name}" #
                     
                     message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
                     location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text
