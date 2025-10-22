@@ -134,6 +134,13 @@ JR_LINE_PREDICTION_DATA = {
                     '荻窪', '西荻窪', '吉祥寺','三鷹'],
         "turning_stations":{'千葉','幕張','津田沼','西船橋','御茶ノ水','水道橋','中野','三鷹'}
     },
+    "odpt.Railway:JR-East.SobuRapid": {
+        "name": "総武快速線",
+        "stations":['千葉','西千葉','稲毛','新検見川','幕張','幕張本郷','津田沼','東船橋','船橋',
+                    '西船橋','下総中山','本八幡','市川','小岩','新小岩','平井','亀戸','錦糸町',
+                    '馬喰町','新日本橋','東京','横須賀線方面'],
+        "turning_stations":{'千葉','津田沼','東京'}
+    },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
     }
@@ -142,6 +149,8 @@ last_jr_east_statuses = {}
 
 NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します"]
 # ---------------------------------------------------------------
+
+current_official_statuses: Dict[str, Optional[str]] = {}
 
 # --- ヘルパー関数 ---
 def _find_nearest_turning_station(station_list, turning_stations, start_index, direction):
@@ -161,8 +170,10 @@ def _find_nearest_hub(station_list, hubs, start_index, direction):
 
 # --- メイン関数 (構造修正・最終完成版) ---
 def check_jr_east_info() -> Optional[List[str]]:
-    global last_jr_east_statuses
+    global last_jr_east_statuses, current_official_statuses # ★ 新しい辞書もグローバル宣言
     notification_messages: List[str] = []
+    # ★ 新しい辞書をここでクリア（毎回の実行で最新にするため）
+    current_official_statuses = {}
 
     # ▼▼▼▼▼ ここからがシミュレーションコード ▼▼▼▼▼
     # Trueにすると、指定した路線の事故を強制的に発生させる
@@ -225,10 +236,14 @@ def check_jr_east_info() -> Optional[List[str]]:
 
         # === ここからが正しい処理ループ ===
         for line_id, line_info in info_dict.items():
-            if line_id not in JR_LINE_PREDICTION_DATA:
-                continue
-            current_status: str = line_info["odpt:trainInformationText"]["ja"]
-            if not current_status: continue
+            current_status_text: Optional[str] = line_info.get("odpt:trainInformationText", {}).get("ja")
+            # ★★★ 公式ステータスを取得 ★★★
+            current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")
+            
+            # ★★★ 取得したステータスを記録 ★★★
+            current_official_statuses[line_id] = current_info_status
+
+            if not current_status_text: continue
 
             if SIMULATE_ACCIDENTS and line_id in SIMULATION_DATA:
                 print(f"--- [SIMULATION] Injecting accident info for {line_id} ---", flush=True)
@@ -247,9 +262,9 @@ def check_jr_east_info() -> Optional[List[str]]:
 
                 # 運転見合わせテキストがあり、かつ、ステータスが「第2報以降」でない場合のみ予測
                 if line_id in JR_LINE_PREDICTION_DATA and \
-                    "運転を見合わせています" in current_status and \
-                    current_info_status != "運転再開見込" and \
-                    "運転再開" not in (current_info_status or ""): # "一部運転再開"なども除外
+                   "運転を見合わせています" in current_status_text and \
+                   current_info_status != "運転再開見込" and \
+                   "運転再開" not in (current_info_status or ""):
     
                     print(f"--- [PREDICTION START @ {line_id}] Status is '{current_info_status}'. Proceeding with prediction. ---", flush=True)
                     # このブロックで初めて line_data などを定義する
@@ -437,9 +452,11 @@ def check_jr_east_info() -> Optional[List[str]]:
                 
                 # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
-                    if not any(keyword in current_status for keyword in NORMAL_STATUS_KEYWORDS):
+                    NORMAL_STATUS_KEYWORDS = ["平常", "正常"]
+                    # ★★★ 平常運転かどうかのチェックもステータスを使う ★★★
+                    if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                        message = f"【{line_name_jp} 運行情報】\n{current_status}"
+                        message = f"【{line_name_jp} 運行情報】\n{current_status_text}"
                         notification_messages.append(message)
                     else:
                         # 平常運転の場合はログにだけ記録（デバッグ用、不要なら消してもOK）
@@ -462,3 +479,6 @@ def check_jr_east_info() -> Optional[List[str]]:
         print(f"------------------------------------", flush=True)
         # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
         return None # エラーが起きたらNoneを返すのは変わらない
+    
+    def get_current_official_statuses() -> Dict[str, Optional[str]]:
+        return current_official_statuses

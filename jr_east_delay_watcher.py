@@ -24,15 +24,16 @@ tracked_delayed_trains: Dict[str, Dict[str, Any]] = {}
 # ★★★ 路線ごとの通知クールダウン用辞書 ★★★
 line_cooldown_tracker: Dict[str, float] = {}
 
+
 # --- 設定値 ---
 DELAY_THRESHOLD_SECONDS = 3 * 60
-INITIAL_NOTICE_THRESHOLD = 5     # ★★★ 最初の通知を出すカウント ★★★
+INCREASE_COUNT_THRESHOLD = 5     # ★★★ 最初の通知を出すカウント ★★★
 ESCALATION_NOTICE_THRESHOLD = 10 # ★★★ 再通知を出すカウント ★★★
 CLEANUP_THRESHOLD_SECONDS = 15 * 60
 COOLDOWN_SECONDS = 30 * 60
 
 # --- メイン関数 ---
-def check_delay_increase() -> Optional[List[str]]:
+def check_delay_increase(official_statuses: Dict[str, Optional[str]]) -> Optional[List[str]]:
     global tracked_delayed_trains, line_cooldown_tracker
     notification_messages: List[str] = []
     current_time = time.time()
@@ -73,7 +74,7 @@ def check_delay_increase() -> Optional[List[str]]:
                         location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
                         
                         reason = "運転再開を確認" if moved else "遅延が回復"
-                        message = f"[{line_name_jp} 運転再開]\n{location_name_jp}駅付近で停止していた列車の{reason}しました。"
+                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。"
                         notification_messages.append(message)
                         print(f"--- [DELAY WATCH] !!! RESUMPTION NOTICE for Train {train_number} !!! Reason: {reason}", flush=True)
 
@@ -96,27 +97,33 @@ def check_delay_increase() -> Optional[List[str]]:
                     location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
 
                     # --- 最初の通知判定 ---
-                    if count >= INITIAL_NOTICE_THRESHOLD and not tracking_info.get("notified_initial", False):
+                if tracking_info["consecutive_increase_count"] >= INCREASE_COUNT_THRESHOLD:
+                    current_official_status = official_statuses.get(line_id)
+                    if current_official_status == "運転見合わせ":
+                        print(f"--- [DELAY WATCH] Train {train_number}: Skipping notification for {line_id} because official status is already '運転見合わせ'.", flush=True)
+                        del tracked_delayed_trains[train_number] # 追跡は解除
+
+                    else:
                         last_notification_time = line_cooldown_tracker.get(line_id, 0)
                         if current_time - last_notification_time > COOLDOWN_SECONDS:
                             message = (
-                                f"[{line_name_jp} 運転見合わせの可能性あり]\n"
+                                f"【{line_name_jp} 運転見合わせ】\n"
                                 f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
-                                f"今後の運行情報にご注意ください。"
+                                f"今後の情報にご注意ください。(現在遅延: {int(current_delay / 60)}分)"
                             )
                             notification_messages.append(message)
                             line_cooldown_tracker[line_id] = current_time
-                            tracking_info["notified_initial"] = True # ★最初の通知フラグを立てる
+                            tracking_info["notified_initial"] = True # フラグ設定はここで行う
                             print(f"--- [DELAY WATCH] !!! INITIAL NOTICE SENT for Train {train_number} !!!", flush=True)
                         else:
                             print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but line {line_name_jp} in cooldown.", flush=True)
-                    
+                        del tracked_delayed_trains[train_number]
                     # --- 再通知（エスカレーション）判定 ---
-                    elif count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
+                elif count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
                          message = (
-                             f"[{line_name_jp} 運転見合わせ継続中]\n"
+                             f"【{line_name_jp} 運転見合わせ継続中】\n"
                              f"{location_name_jp}駅付近でのトラブル対応が長引いている可能性があります。"
-                             f"(遅延: {int(current_delay / 60)}分)" # 遅延時間も追加
+                             f"(遅延: {int(current_delay / 60)}分)" 
                          )
                          notification_messages.append(message)
                          tracking_info["notified_escalated"] = True # ★再通知フラグを立てる

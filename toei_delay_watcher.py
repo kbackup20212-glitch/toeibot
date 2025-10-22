@@ -77,7 +77,7 @@ def check_toei_delay_increase() -> Optional[List[str]]:
                         location_name_en = tracking_info["last_location_id"].split('.')[-1]
                         location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
                         reason = "運転再開を確認" if moved else "遅延が回復"
-                        message = f"[{line_name_jp} 運転再開]\n{location_name_jp}駅付近で停止していた列車の{reason}しました。"
+                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。"
                         notification_messages.append(message)
                         print(f"--- [TOEI DELAY WATCH] !!! RESUMPTION NOTICE for Train {train_number} !!! Reason: {reason}", flush=True)
                     if moved: print(f"--- [TOEI DELAY WATCH] Train {train_number}: Reset (moved).", flush=True)
@@ -101,9 +101,9 @@ def check_toei_delay_increase() -> Optional[List[str]]:
                         last_notification_time = line_cooldown_tracker.get(line_id, 0)
                         if current_time - last_notification_time > COOLDOWN_SECONDS:
                             message = (
-                                f"[{line_name_jp} 運転見合わせの可能性あり]\n"
+                                f"【{line_name_jp} 運転見合わせ】\n"
                                 f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
-                                f"今後の運行情報にご注意ください。"
+                                f"今後の情報にご注意ください。(現在遅延: {int(current_delay / 60)}分)"
                             )
                             notification_messages.append(message)
                             line_cooldown_tracker[line_id] = current_time
@@ -115,7 +115,7 @@ def check_toei_delay_increase() -> Optional[List[str]]:
                     # --- 再通知（エスカレーション）判定 ---
                     elif count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
                          message = (
-                             f"[{line_name_jp} 運転見合わせ継続中]\n"
+                             f"【{line_name_jp} 運転見合わせ継続中】\n"
                              f"{location_name_jp}駅付近でのトラブル対応が長引いている可能性があります。"
                              f"(遅延: {int(current_delay / 60)}分)" # 遅延時間も追加
                          )

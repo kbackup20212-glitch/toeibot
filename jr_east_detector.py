@@ -103,8 +103,10 @@ STATION_DICT = {
     'Fukutawara': '福俵', 'Togane': '東金', 'Gumyo': '求名',
 
     #京葉線
-    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiomi': '潮見', 'KasaiRinkaiPark': '葛西臨海公園',
-    'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
+    'Hatchobori': '八丁堀', 'Etchujima': '越中島', 'Shiomi': '潮見', 
+    'KasaiRinkaiPark': '葛西臨海公園',
+    'Maihama': '舞浜', 'ShinUrayasu': '新浦安', 'Ichikawashiohama': '市川塩浜', 
+    'Futamatashinmachi': '二俣新町', 'MinamiFunabashi': '南船橋',
     'ShinNarashino': '新習志野', 'Kaihimmakuhari': '海浜幕張', 'Kemigawahama': '検見川浜',
     'Inagekaigan': '稲毛海岸', 'Chibaminato': '千葉みなと', 'Soga': '蘇我', 
 
@@ -123,7 +125,8 @@ STATION_DICT = {
     'Omiya': '大宮', 'SaitamaShintoshin': 'さいたま新都心', 'Yono': '与野', 'KitaUrawa': '北浦和', 
     'Urawa': '浦和', 'MinamiUrawa': '南浦和', 'Warabi': '蕨', 'NishiKawaguchi': '西川口', 
     'Kawaguchi': '川口', 'Akabane': '赤羽', 'HigashiJujo': '東十条', 'Oji': '王子', 
-    'KamiNakazato': '上中里', 'Oimachi': '大井町', 'Omori': '大森', 'Kamata': '蒲田', 'Kawasaki': '川崎', 
+    'KamiNakazato': '上中里', 'Oimachi': '大井町', 'Omori': '大森', 'Kamata': '蒲田', 
+    'Kawasaki': '川崎', 
     'Tsurumi': '鶴見', 'ShinKoyasu': '新子安', 'HigashiKanagawa': '東神奈川', 'Yokohama': '横浜', 
     'Sakuragicho': '桜木町', 'Kannai': '関内', 'Ishikawacho': '石川町', 'Yamate': '山手', 
     'Negishi': '根岸', 'Isogo': '磯子', 'ShinSugita': '新杉田', 'Yokodai': '洋光台', 
@@ -176,13 +179,15 @@ STATION_DICT = {
     'Ino': '井野', 'Takasakitonyamachi': '高崎問屋町', 'Takasaki': '高崎',
 
     # 高崎線 (倉賀野～宮原)
-    'Kuragano': '倉賀野', 'Shinmachi': '新町', 'Jimbohara': '神保原', 'Honjo': '本庄', 'Okabe': '岡部', 'Fukaya': '深谷',
-    'Okarina': '岡部', 'Kagohara': '籠原', 'Kumagaya': '熊谷', 'Gyoda': '行田', 'Fukiage': '吹上', 'KitaKonosu': '北鴻巣',
-    'Konosu': '鴻巣', 'Kitamoto': '北本', 'Okegawa': '桶川', 'KitaAgeo': '北上尾', 'Ageo': '上尾', 'Miyahara': '宮原',
+    'Kuragano': '倉賀野', 'Shinmachi': '新町', 'Jimbohara': '神保原', 'Honjo': '本庄', 
+    'Okabe': '岡部', 'Fukaya': '深谷', 'Kagohara': '籠原', 'Kumagaya': '熊谷', 'Gyoda': '行田', 
+    'Fukiage': '吹上', 'KitaKonosu': '北鴻巣', 'Konosu': '鴻巣', 'Kitamoto': '北本', 
+    'Okegawa': '桶川', 'KitaAgeo': '北上尾', 'Ageo': '上尾', 'Miyahara': '宮原',
 
     # 宇都宮線 (宇都宮～大宮)
-    'Utsunomiya': '宇都宮', 'Suzumenomiya': '雀宮', 'Ishibashi': '石橋', 'Jichiidai': '自治医大', 'Koganei': '小金井',
-    'Nogi': '野木', 'Mamada': '間々田', 'Oyama': '小山', 'Koga': '古河', 'Kurihashi': '栗橋', 'HigashiWashinomiya': '東鷲宮',
+    'Utsunomiya': '宇都宮', 'Suzumenomiya': '雀宮', 'Ishibashi': '石橋', 'Jichiidai': '自治医大', 
+    'Koganei': '小金井', 'Nogi': '野木', 'Mamada': '間々田', 'Oyama': '小山', 'Koga': '古河', 
+    'Kurihashi': '栗橋', 'HigashiWashinomiya': '東鷲宮',
     'Kuki': '久喜', 'Shiraoka': '白岡', 'Hasuda': '蓮田', 'HigashiOmiya': '東大宮', 'Toro': '土呂',
     
     #宇都宮線
@@ -269,6 +274,9 @@ STATION_DICT = {
     'Karakiida': '唐木田', 'MukogaokaYuen': '向ケ丘遊園', 'SeijogakuenMae': '成城学園前', 
     'YoyogiUehara': '代々木上原', 'YoyogiKoen': '代々木公園', 'MeijiJingumae': '明治神宮前',
     'Omotesando': '表参道', 'Kasumigaseki': '霞ケ関', 'Otemachi': '大手町', 'Yushima': '湯島',  
+
+    #成田線
+    'NaritaAirportTerminal1': '成田空港', 'Narita': '成田'
 
 }
 
@@ -810,6 +818,7 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.Local', 'Tsudanuma'),
             ('odpt.TrainType:JR-East.Local', 'Tokyo'),
             ('odpt.TrainType:JR-East.Local', 'Shinagawa'),
+            ('odpt.TrainType:JR-East.Local', 'Ofuna'),
             ('odpt.TrainType:JR-East.Local', 'Kurihama'),
             ('odpt.TrainType:JR-East.Local', 'Yokosuka'),
             ('odpt.TrainType:JR-East.Local', 'Zushi'),

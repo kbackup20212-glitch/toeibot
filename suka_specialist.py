@@ -2,7 +2,7 @@ import re
 
 # --- この専門家だけが知っている、中央線のルールブック ---
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
-    "特急NEX": {'NaritaAirpotTerminal1','Shinjuku','Ofuna'},
+    "特急NEX": {'NaritaAirportTerminal1','Shinjuku','Ofuna'},
     "特急湘南": {'Tokyo'},
     "特急": {},
 }
