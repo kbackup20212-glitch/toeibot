@@ -236,11 +236,9 @@ def check_jr_east_info() -> Optional[List[str]]:
 
         # === ここからが正しい処理ループ ===
         for line_id, line_info in info_dict.items():
+            # ★★★ ここで正しく text を取得 ★★★
             current_status_text: Optional[str] = line_info.get("odpt:trainInformationText", {}).get("ja")
-            # ★★★ 公式ステータスを取得 ★★★
             current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")
-            
-            # ★★★ 取得したステータスを記録 ★★★
             current_official_statuses[line_id] = current_info_status
 
             if not current_status_text: continue
@@ -248,11 +246,11 @@ def check_jr_east_info() -> Optional[List[str]]:
             if SIMULATE_ACCIDENTS and line_id in SIMULATION_DATA:
                 print(f"--- [SIMULATION] Injecting accident info for {line_id} ---", flush=True)
                 # 辞書から対応するテキストを取得して上書き
-                current_status = SIMULATION_DATA[line_id]
+                current_status_text = SIMULATION_DATA[line_id]
                 last_jr_east_statuses[line_id] = "dummy_status_to_force_update"
 
-            if current_status != last_jr_east_statuses.get(line_id):
-                last_jr_east_statuses[line_id] = current_status
+            if current_status_text != last_jr_east_statuses.get(line_id):
+                last_jr_east_statuses[line_id] = current_status_text
                 prediction_made = False
                 skip_prediction = False
 
@@ -292,11 +290,11 @@ def check_jr_east_info() -> Optional[List[str]]:
                     
                     if not station_list: skip_prediction = True # 駅リストがなければ予測不能
 
-                    status_to_check = current_status
+                    status_to_check = current_status_text
                     forced_station = None
 
                     # --- 路線連携ロジック ---
-                    if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status:
+                    if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status_text:
                         linked_line_id = "odpt.Railway:JR-East.ChuoSobuLocal"
                         linked_status_raw = None
                         # ★★★ シミュレーションモードを優先 ★★★
@@ -313,15 +311,15 @@ def check_jr_east_info() -> Optional[List[str]]:
                         else:
                              print(f"--- [JR INFO] ChuoRapid: Linked Sobu status was empty. Using original status.", flush=True)
                     elif line_id == "odpt.Railway:JR-East.Saikyo":
-                        if "山手線内での" in current_status:
+                        if "山手線内での" in current_status_text:
                             yamanote_status = info_dict.get("odpt.Railway:JR-East.Yamanote", {}).get("odpt:trainInformationText", {}).get("ja")
                             if yamanote_status: status_to_check = yamanote_status
-                        elif "湘南新宿ライン内での" in current_status:
+                        elif "湘南新宿ライン内での" in current_status_text:
                             shonan_status = info_dict.get("odpt.Railway:JR-East.ShonanShinjuku", {}).get("odpt:trainInformationText", {}).get("ja")
                             if shonan_status: status_to_check = shonan_status
-                        elif "東海道線内での" in current_status or "横須賀線内での" in current_status:
+                        elif "東海道線内での" in current_status_text or "横須賀線内での" in current_status_text:
                             forced_station = "大崎"
-                        elif "線内での" in current_status:
+                        elif "線内での" in current_status_text:
                             skip_prediction = True
                     
                     # --- 予測実行 ---
@@ -437,7 +435,7 @@ def check_jr_east_info() -> Optional[List[str]]:
                             reason_text = f"\nこれは、{station}駅での{cause}の影響です。"
                         # どちらにも一致しない場合は、シンプルな抽出
                         elif not reason_text:
-                            reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status)
+                            reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status_text)
                             if reason_match_simple:
                                 reason_text = f"\nこれは{reason_match_simple.group(1)}の影響です。"
 
