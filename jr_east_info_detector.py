@@ -480,5 +480,5 @@ def check_jr_east_info() -> Optional[List[str]]:
         # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
         return None # エラーが起きたらNoneを返すのは変わらない
     
-    def get_current_official_statuses() -> Dict[str, Optional[str]]:
-        return current_official_statuses
+def get_current_official_statuses() -> Dict[str, Optional[str]]:
+    return current_official_statuses

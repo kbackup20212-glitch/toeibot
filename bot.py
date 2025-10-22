@@ -19,8 +19,10 @@ from tokyo_metro_detector import check_tokyo_metro_info
 from jr_east_info_detector import check_jr_east_info
 from toei_delay_watcher import check_toei_delay_increase
 from toei_detector import check_toei_irregularities
-from jr_east_info_detector import check_jr_east_info, get_current_official_statuses # ★ 関数を2つインポート
+from jr_east_info_detector import get_current_official_statuses
 from jr_east_delay_watcher import check_delay_increase
+
+
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 NOTIFICATION_USER_ID = os.getenv('NOTIFICATION_USER_ID')
