@@ -229,72 +229,116 @@ def fetch_toei_train_data(line_config):
         return None
 
 # --- データを判定する係 (JRのprocess_irregularitiesとほぼ同じ構造) ---
-def process_toei_irregularities(train_data, line_config):
-    irregular_messages = []
-    allowed_trips = line_config.get("regular_trips", set())
-
+def process_toei_irregularities(train_data: List[Dict[str, Any]], line_config: Dict[str, Any]) -> List[str]:
+    irregular_messages: List[str] = []
+    
     for train in train_data:
         train_type_id: Optional[str] = train.get("odpt:trainType")
-        dest_station_id_list: Optional[List[str]] = train.get("odpt:destinationStation")
         train_number: Optional[str] = train.get("odpt:trainNumber")
+        line_id: str = line_config["id"] # 路線IDを先に取得
         
-        # 必要な情報が欠けていたらスキップ
-        if not all([train_type_id, dest_station_id_list, train_number]): continue
+        if not all([train_type_id, train_number, line_id]): continue
         if train_number is None: continue
 
-        dest_station_en = dest_station_id_list[-1].split('.')[-1].strip()
-        current_trip = (train_type_id, dest_station_en)
+        # 行き先リストを取得
+        dest_station_id_list: Optional[List[str]] = train.get("odpt:destinationStation")
 
-        if current_trip not in allowed_trips:
-            notification_id = f"{train_number}_{dest_station_en}" # 通知IDは列車番号と行先
-            if notification_id not in notified_trains:
-                try:
-                    line_name_jp = line_config.get("name", "?")
-                    if line_config["id"] == "odpt.Railway:Toei.Asakusa" and train_type_id == 'odpt.TrainType:Toei.Local':
-                        train_type_jp = "普通"
-                    elif line_config["id"] == "odpt.Railway:Toei.Oedo" and train_type_id == 'odpt.TrainType:Toei.Local':
-                        train_type_jp = ""
-                    else:
-                        train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
-                    dest_station_jp = STATION_DICT.get(dest_station_en, dest_station_en)
-                    
-                    # 走行位置や遅延も取得できれば追加 (API仕様を確認)
-                    location_text = ""
-                    from_station_id = train.get("odpt:fromStation")
-                    to_station_id = train.get("odpt:toStation")
-                    if to_station_id and from_station_id:
-                        from_jp = STATION_DICT.get(from_station_id.split('.')[-1], '?')
-                        to_jp = STATION_DICT.get(to_station_id.split('.')[-1], '?')
-                        location_text = f"{from_jp}→{to_jp}を走行中"
-                    elif from_station_id:
-                        from_jp = STATION_DICT.get(from_station_id.split('.')[-1], '?')
-                        location_text = f"{from_jp}に停車中"
-                    delay_minutes = round(train.get("odpt:delay", 0) / 60)
-                    delay_text = f"遅延:{delay_minutes}分" if delay_minutes > 0 else "定刻"
-                    
-                    owner_id: Optional[str] = train.get("odpt:trainOwner")
-                    owner_text: str = ""
-                    if owner_id:
-                        owner_name: str = TRAIN_OWNER_NAMES.get(owner_id, "")
-                        if owner_name:
-                             owner_text = f"{owner_name}" #
-                    
-                    message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
-                    location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text
-                    message_line2 = location_text_with_delay
-                    message_line3 = f"列番:{train_number} ({owner_text})" 
-                    final_message = f"{message_line1}\n{message_line2}\n{message_line3}" if message_line2 else f"{message_line1}\n{message_line3}"
-                    
-                    irregular_messages.append(final_message)
-                    notified_trains.add(notification_id)
-                except Exception as e:
-                    print(f"--- [TOEI NOTIFICATION ERROR] Train {train_number} メッセージ作成エラー: {e}", flush=True)
+        is_irregular = False
+        train_type_jp: str = "" # まず空で初期化
+        dest_station_jp: str = "" # まず空で初期化
+        notification_id: str = ""
+        dest_station_en: str = "" # 通常ルート用に初期化
+
+        # ▼▼▼▼▼ None行き特別ルート ▼▼▼▼▼
+        if dest_station_id_list is None:
+            if line_id == "odpt.Railway:Toei.Asakusa":
+                print(f"--- [TOEI ROMAN] Train {train_number}: None destination on Asakusa Line. Assuming Keikyu Kamata. ---", flush=True)
+                is_irregular = True
+                dest_station_jp = "京急蒲田" # 特別表示
+                notification_id = f"{train_number}_KeikyuKamata" # 特別ID
+            elif line_id == "odpt.Railway:Toei.Mita":
+                print(f"--- [TOEI ROMAN] Train {train_number}: None destination on Mita Line. Assuming Meguro Area. ---", flush=True)
+                is_irregular = True
+                dest_station_jp = "目黒方面" # 特別表示
+                notification_id = f"{train_number}_MeguroArea" # 特別ID
+            
+            # None行きでも対象路線でなければ、通常通り無視 (is_irregular は False のまま)
+            if not is_irregular:
+                 continue # この列車はスキップ
+
+            # 種別名は通常通り取得
+            if line_id == "odpt.Railway:Toei.Oedo" and train_type_id == 'odpt.TrainType:Toei.Local':
+                train_type_jp = "" 
+            elif line_id == "odpt.Railway:Toei.Asakusa" and train_type_id == 'odpt.TrainType:Toei.Local':
+                train_type_jp = "普通"
+            else:
+                train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
+
+        # ▼▼▼ 通常ルート ▼▼▼
+        else:
+            dest_station_en = dest_station_id_list[-1].split('.')[-1].strip()
+            notification_id = f"{train_number}_{dest_station_en}"
+            current_trip: tuple = (train_type_id, dest_station_en)
+            allowed_trips: set = line_config.get("regular_trips", set())
+
+            if current_trip not in allowed_trips:
+                is_irregular = True
+
+            # 通常ルートの種別名設定
+            if line_id == "odpt.Railway:Toei.Oedo" and train_type_id == 'odpt.TrainType:Toei.Local':
+                train_type_jp = ""
+            elif line_id == "odpt.Railway:Toei.Asakusa" and train_type_id == 'odpt.TrainType:Toei.Local':
+                train_type_jp = "普通"
+            else:
+                train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
+            
+            # 通常ルートの行き先名設定
+            dest_station_jp = STATION_DICT.get(dest_station_en, dest_station_en)
+
+        # ▼▼▼ メッセージ作成 (None行きと通常ルートが合流) ▼▼▼
+        if is_irregular and notification_id and notification_id not in notified_trains:
+            try:
+                line_name_jp: str = line_config.get("name", "?")
+                
+                # train_type_jp と dest_station_jp は上で決定済み
+
+                location_text: str = ""
+                from_station_id: Optional[str] = train.get("odpt:fromStation")
+                to_station_id: Optional[str] = train.get("odpt:toStation")
+                if to_station_id and from_station_id:
+                    from_jp: str = STATION_DICT.get(from_station_id.split('.')[-1], '?')
+                    to_jp: str = STATION_DICT.get(to_station_id.split('.')[-1], '?')
+                    location_text = f"{from_jp}→{to_jp}を走行中"
+                elif from_station_id:
+                    from_jp: str = STATION_DICT.get(from_station_id.split('.')[-1], '?')
+                    location_text = f"{from_jp}に停車中"
+                
+                delay_minutes: int = round(train.get("odpt:delay", 0) / 60)
+                delay_text: str = f"遅延:{delay_minutes}分" if delay_minutes > 0 else ""
+
+                owner_id: Optional[str] = train.get("odpt:trainOwner")
+                owner_text: str = ""
+                if owner_id:
+                    owner_name: str = TRAIN_OWNER_NAMES.get(owner_id, "")
+                    if owner_name: owner_text = f" ({owner_name})"
+                
+                message_line1 = f"[{line_name_jp}] {train_type_jp} {dest_station_jp}行き"
+                location_text_with_delay = f"{location_text} ({delay_text})" if location_text and delay_text else location_text
+                message_line2 = location_text_with_delay
+                message_line3 = f"列番:{train_number}{owner_text}"
+                
+                final_message = f"{message_line1}\n{message_line2}\n{message_line3}" if message_line2 else f"{message_line1}\n{message_line3}"
+                
+                irregular_messages.append(final_message)
+                notified_trains.add(notification_id)
+            except Exception as e:
+                print(f"--- [TOEI NOTIFICATION ERROR] Train {train_number} メッセージ作成エラー: {e}", flush=True)
 
     return irregular_messages
 
 # --- 司令塔に提供する、唯一の機能 ---
-def check_toei_irregularities():
-    all_irregular_trains = []
+def check_toei_irregularities() -> List[str]:
+    all_irregular_trains: List[str] = []
     for line_config in TOEI_LINES_TO_MONITOR:
         train_data = fetch_toei_train_data(line_config)
         if train_data is not None:

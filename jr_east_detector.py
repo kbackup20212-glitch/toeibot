@@ -3,9 +3,9 @@ import requests
 import re
 from chuo_line_specialist import check_chuo_line_train
 from co_line_specialist import check_co_line_train
-#from sobu_rapid_specialist import check_sobu_line_train
 from tokaido_line_specialist import check_tokaido_line_train
 from boso_specialist import check_boso_train
+from tohoku_specialist import check_tohoku_train
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:Train"
@@ -795,7 +795,37 @@ JR_LINES_TO_MONITOR = [
            ('odpt.TrainType:JR-East.Local', 'Toride'),
         }
     },
+    { #横須賀線
+        "id": "odpt.Railway:JR-East.Yokosuka",
+        "name": "横須賀線",
+        "regular_trips": {
+           ('odpt.TrainType:JR-East.Local', 'NaritaAirportTerminal1'),
+            ('odpt.TrainType:JR-East.Local', 'Naruto'),
+            ('odpt.TrainType:JR-East.Local', 'Kimitsu'),
+            ('odpt.TrainType:JR-East.Local', 'Sakura'),
+            ('odpt.TrainType:JR-East.Local', 'KazusaIchinomiya'),
+            ('odpt.TrainType:JR-East.Local', 'Narita'),
+            ('odpt.TrainType:JR-East.Local', 'Chiba'),
+            ('odpt.TrainType:JR-East.Local', 'Tsudanuma'),
+            ('odpt.TrainType:JR-East.Local', 'Tokyo'),
+            ('odpt.TrainType:JR-East.Local', 'Shinagawa'),
+            ('odpt.TrainType:JR-East.Local', 'Kurihama'),
+            ('odpt.TrainType:JR-East.Local', 'Yokosuka'),
+            ('odpt.TrainType:JR-East.Local', 'Zushi'),
+            ('odpt.TrainType:JR-East.Local', 'Koga'),
+            ('odpt.TrainType:JR-East.Local', 'Koganei'),
+            ('odpt.TrainType:JR-East.Local', 'Utsunomiya'),
+            ('odpt.TrainType:JR-East.LimitedExpress', 'Ofuna'),
+            ('odpt.TrainType:JR-East.LimitedExpress', 'NaritaAirportTerminal1'),
+        }
+    },
 ]
+
+HEBIKUBO_TARGET_LINES = {
+    "odpt.Railway:JR-East.SaikyoKawagoe",
+    "odpt.Railway:JR-East.ShonanShinjuku",
+    "odpt.Railway:JR-East.SotetsuDirect", 
+}
 
 notified_trains = set()
 
@@ -833,10 +863,34 @@ def _is_yamanote_line_train_irregular(train, line_config):
 def process_irregularities(train_data, line_config):
     irregular_messages = []
     for train in train_data:
+        # まず基本情報を取得
         train_type_id = train.get("odpt:trainType")
-        dest_station_id_list = train.get("odpt:destinationStation")
         train_number = train.get("odpt:trainNumber")
-        if not all([train_type_id, dest_station_id_list, train_number]): continue
+        line_id = line_config['id'] # 路線IDを先に取得
+        
+        # 必要な基本情報がなければスキップ
+        if not all([train_type_id, train_number, line_id]): continue
+        
+        # 行き先リストを取得
+        dest_station_id_list = train.get("odpt:destinationStation")
+
+        is_irregular = False
+        train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id) # デフォルト種別名
+        dest_station_jp = "" # 行き先表示名を初期化
+        notification_id = "" # 通知IDを初期化
+        dest_station_en = "" # 英語の行き先名も初期化
+
+        # ▼▼▼▼▼ 蛇窪ロマンルート ▼▼▼▼▼
+        if line_id in HEBIKUBO_TARGET_LINES and dest_station_id_list is None:
+            print(f"--- [HEBIKUBO?] Train {train_number} on {line_id} has None destination. Possible Hebikubo! ---", flush=True)
+            is_irregular = True
+            dest_station_jp = "蛇窪信号場" # 表示名を直接設定
+            notification_id = f"{train_number}_Hebikubo" # 特別な通知ID
+            # このルートでは dest_station_en は使わない
+
+        # ▼▼▼ 通常ルート ▼▼▼
+        else:
+            if not dest_station_id_list: continue
         
         dest_station_en = dest_station_id_list[-1].split('.')[-1].strip()
         display_dest_en = dest_station_en
@@ -858,6 +912,10 @@ def process_irregularities(train_data, line_config):
             is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.SobuRapid':
             is_irregular, train_type_jp = check_boso_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        elif line_config['id'] == 'odpt.Railway:JR-East.Utsunomiya':
+            is_irregular, train_type_jp = check_tohoku_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
+        elif line_config['id'] == 'odpt.Railway:JR-East.Takasaki':
+            is_irregular, train_type_jp = check_tohoku_train(train, line_config.get("regular_trips", set()), TRAIN_TYPE_NAMES)
         elif line_config['id'] == 'odpt.Railway:JR-East.Yamanote':
             is_irregular, train_type_jp = _is_yamanote_line_train_irregular(train, line_config)
 
@@ -868,6 +926,23 @@ def process_irregularities(train_data, line_config):
                 is_irregular = True
             train_type_jp = TRAIN_TYPE_NAMES.get(train_type_id, train_type_id)
         
+        if is_irregular and line_id == "odpt.Railway:JR-East.Keiyo":
+            from_station_id = train.get("odpt:fromStation")
+            to_station_id = train.get("odpt:toStation")
+            direction = train.get("odpt:railDirection")
+            
+            # 条件: 蘇我駅に停車中 / Outbound / 列番末尾が A or Y
+            if from_station_id and "Soga" in from_station_id and not to_station_id and \
+               direction and "Outbound" in direction and \
+               train_number: # train_numberがNoneでないことを確認
+                 last_char = train_number[-1].upper() # 末尾の文字を大文字で取得
+                 if last_char == 'A':
+                     print(f"--- [KEIYO OVERRIDE] Train {train_number}: Overriding line name to Sotobo Line at Soga. ---", flush=True)
+                     line_name_jp = "外房線" # 表示名を上書き
+                 elif last_char == 'Y':
+                     print(f"--- [KEIYO OVERRIDE] Train {train_number}: Overriding line name to Uchibo Line at Soga. ---", flush=True)
+                     line_name_jp = "内房線" # 表示名を上書き
+
         if is_irregular and line_id == "odpt.Railway:JR-East.KeihinTohokuNegishi":
             direction = train.get("odpt:railDirection")
             current_location_id = train.get("odpt:toStation") or train.get("odpt:fromStation")
@@ -896,25 +971,28 @@ def process_irregularities(train_data, line_config):
                 
         is_special_name_from_specialist = train_type_jp not in TRAIN_TYPE_NAMES.values() and train_type_jp != train_type_id
 
-        if not is_special_name_from_specialist:
+        if is_irregular and notification_id and notification_id not in notified_trains:
+            try:
+                line_name_jp = line_config.get("name", "?")
+
+                if not is_special_name_from_specialist:
              # ルール1: 特定路線の Local は「普通」
-             if train_type_id == 'odpt.TrainType:JR-East.Local' and \
+                    if train_type_id == 'odpt.TrainType:JR-East.Local' and \
                 line_id in ['odpt.Railway:JR-East.Takasaki', 
                              'odpt.Railway:JR-East.Utsunomiya',
                              'odpt.Railway:JR-East.ShonanShinjuku', 
+                             'odpt.Railway:JR-East.Yokosuka', 
                              'odpt.Railway:JR-East.Tokaido']:
-                 train_type_jp = "普通"
+                        train_type_jp = "普通"
              
              # ルール2: 特定路線の SpecialRapid は「ホリデー快速」
-             elif train_type_id == 'odpt.TrainType:JR-East.SpecialRapid' and \
+                    elif train_type_id == 'odpt.TrainType:JR-East.SpecialRapid' and \
                   line_id in ['odpt.Railway:JR-East.ChuoRapid', 
                               'odpt.Railway:JR-East.Ome']:
-                 train_type_jp = "ホリデー快速"
+                        train_type_jp = "ホリデー快速"
              # 他にもルールがあれば elif で追加
 
-        if is_irregular and notification_id not in notified_trains:
-            try:
-                line_name_jp = line_config.get("name", "?")
+
                 if "." in display_dest_en:
                     parts = display_dest_en.split('.')
                     dest_station_jp = "・".join([STATION_DICT.get(part, part) for part in parts])

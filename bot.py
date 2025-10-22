@@ -17,6 +17,7 @@ from jr_east_detector import check_jr_east_irregularities
 from tama_monorail_info_detector import check_tama_monorail_info
 from tokyo_metro_detector import check_tokyo_metro_info
 from jr_east_info_detector import check_jr_east_info
+from toei_delay_watcher import check_toei_delay_increase
 from toei_detector import check_toei_irregularities
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
@@ -80,6 +81,11 @@ async def periodic_check():
         delay_watcher_messages = await bot.loop.run_in_executor(None, check_delay_increase)
         if delay_watcher_messages:
             all_notifications.extend(delay_watcher_messages)
+        
+        # 7. 都営 遅延増加監視 
+        toei_delay_messages = await bot.loop.run_in_executor(None, check_toei_delay_increase)
+        if toei_delay_messages:
+            all_notifications.extend(toei_delay_messages)
 
         if all_notifications:
             for msg in all_notifications:

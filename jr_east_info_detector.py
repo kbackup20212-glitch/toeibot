@@ -26,7 +26,7 @@ JR_LINE_PREDICTION_DATA = {
     "odpt.Railway:JR-East.SaikyoKawagoe": {
         "name": "埼京線",
         "stations": [
-            'りんかい線内', '大崎','五反田','目黒', '恵比寿', '渋谷','原宿','代々木', '新宿', 
+            'りんかい線方面', '大崎','五反田','目黒', '恵比寿', '渋谷','原宿','代々木', '新宿', 
             '新大久保', '高田馬場', '目白','池袋', '板橋', '十条', '赤羽', 
             '北赤羽', '浮間舟渡', '戸田公園', '戸田', '北戸田', '武蔵浦和', '中浦和', 
             '南与野', '与野本町', '北与野', '大宮', '日進', '西大宮', '指扇', '南古谷', '川越'
@@ -95,23 +95,24 @@ JR_LINE_PREDICTION_DATA = {
     },
         "odpt.Railway:JR-East.Itsukaichi": {
         "name": "五日市線",
-        "stations":['武蔵五日市','武蔵増戸','武蔵引田','秋川','東秋留','熊川','拝島','拝島・立川方面'],
+        "stations":['武蔵五日市','武蔵増戸','武蔵引田','秋川','東秋留','熊川','拝島','立川方面'],
         "turning_stations":{'武蔵五日市','武蔵引田','拝島'}
     },
         "odpt.Railway:JR-East.Sotobo": {
         "name": "外房線",
-        "stations":['千葉方面','千葉','本千葉','蘇我','鎌取','誉田','土気','大網','永田','本納',
+        "stations":['千葉','本千葉','蘇我','鎌取','誉田','土気','大網','永田','本納',
                     '新茂原','茂原','八積','上総一ノ宮','東浪見','太東','長者町','三門','大原','浪花',
                     '御宿','勝浦','鵜原','上総興津','行川アイランド','安房小湊','安房天津','安房鴨川',
-                    '安房鴨川・内房線方面'],
-        "turning_stations":{'千葉','誉田','大網','本納','茂原','上総一ノ宮','大原','勝浦','安房鴨川'}
+                    '内房線方面'],
+        "turning_stations":{'千葉','誉田','大網','本納','茂原','上総一ノ宮','大原','勝浦','安房小湊',
+                            '安房鴨川'}
     },
         "odpt.Railway:JR-East.Uchibo": {
         "name": "内房線",
-        "stations":['千葉方面','千葉','本千葉','蘇我','浜野','八幡宿','五井','姉ケ崎','長浦','袖ヶ浦',
+        "stations":['千葉','本千葉','蘇我','浜野','八幡宿','五井','姉ケ崎','長浦','袖ヶ浦',
                     '巌根','木更津','君津','青堀','大貫','佐貫町','上総湊','竹岡','浜金谷','保田',
                     '安房勝山','岩井','富浦','那古船形','館山','九重','千倉','千歳','南三原','和田浦',
-                    '江見','太海','安房鴨川','安房鴨川・外房線方面'],
+                    '江見','太海','安房鴨川','外房線方面'],
         "turning_stations":{'千葉','姉ケ崎','木更津','君津','佐貫町','上総湊','保田','岩井','富浦',
                             '館山','千倉','安房鴨川'}
     },
@@ -124,9 +125,17 @@ JR_LINE_PREDICTION_DATA = {
         "turning_stations":{'高尾','相模湖','四方津','大月','甲斐大和','塩山','山梨市','酒折','甲府','竜王',
                             '韮崎','日野春','小淵沢','富士見','青柳','茅野','上諏訪','下諏訪','岡谷'}
     },
+    "odpt.Railway:JR-East.ChuoSobuLocal": {
+        "name": "中央総武線",
+        "stations":['千葉','西千葉','稲毛','新検見川','幕張','幕張本郷','津田沼','東船橋','船橋',
+                    '西船橋','下総中山','本八幡','市川','小岩','新小岩','平井','亀戸','錦糸町','両国',
+                    '浅草橋','秋葉原','御茶ノ水', '水道橋', '飯田橋', '市ケ谷', '四ツ谷', '信濃町', 
+                    '千駄ケ谷', '代々木', '新宿', '大久保', '東中野', '中野', '高円寺', '阿佐ケ谷', 
+                    '荻窪', '西荻窪', '吉祥寺','三鷹'],
+        "turning_stations":{'千葉','幕張','津田沼','西船橋','御茶ノ水','水道橋','中野','三鷹'}
+    },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
-    "odpt.Railway:JR-East.ChuoSobuLocal": {"name": "中央総武線"},
     }
 
 last_jr_east_statuses = {}
@@ -367,6 +376,10 @@ def check_jr_east_info() -> Optional[List[str]]:
                                 print(f"  > No valid station extracted to compare. Skipping calculation.", flush=True) # ここにも来ているはず
 
                             print(f"--- [Prediction Calculation END] ---\n", flush=True)
+                            
+                            if line_id == "odpt.Railway:JR-East.ChuoSobuLocal" and turn_back_1 == "水道橋":
+                                    print(f"--- [JR INFO] ChuoSobu: Suidobashi cannot turn back towards Mitaka. Overriding turn_back_1 to None. ---", flush=True)
+                                    turn_back_1 = None # 折り返し不可として扱う
 
                         except ValueError as e:
                             print(f"--- [JR WARNING] Failed to find index. Station: '{station_to_compare}'. Error: {e}", flush=True)
