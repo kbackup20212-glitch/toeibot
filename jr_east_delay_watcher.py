@@ -90,37 +90,36 @@ def check_delay_increase(official_statuses: Dict[str, Optional[str]]) -> Optiona
                     tracking_info["last_seen_time"] = current_time
                     count = tracking_info["consecutive_increase_count"]
                     
-                    
                     print(f"--- [DELAY WATCH] Train {train_number}: Count {count} at {current_location_id}", flush=True)
 
                     line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
                     location_name_en = current_location_id.split('.')[-1]
                     location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
 
-                    # --- 最初の通知判定 ---
-                if tracking_info["consecutive_increase_count"] >= INCREASE_COUNT_THRESHOLD:
-                    current_official_status = official_statuses.get(line_id)
-                    if current_official_status == "運転見合わせ":
-                        print(f"--- [DELAY WATCH] Train {train_number}: Skipping notification for {line_id} because official status is already '運転見合わせ'.", flush=True)
-                        del tracked_delayed_trains[train_number] # 追跡は解除
-
-                    else:
-                        last_notification_time = line_cooldown_tracker.get(line_id, 0)
-                        if current_time - last_notification_time > COOLDOWN_SECONDS:
-                            message = (
-                                f"【{line_name_jp} 運転見合わせ】\n"
-                                f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
-                                f"今後の情報にご注意ください。(現在遅延: {int(current_delay / 60)}分)"
-                            )
-                            notification_messages.append(message)
-                            line_cooldown_tracker[line_id] = current_time
-                            tracking_info["notified_initial"] = True # フラグ設定はここで行う
-                            print(f"--- [DELAY WATCH] !!! INITIAL NOTICE SENT for Train {train_number} !!!", flush=True)
+                    # --- 最初の通知判定 (カウント5以上) ---
+                    if count >= INCREASE_COUNT_THRESHOLD and not tracking_info.get("notified_initial", False):
+                        current_official_status = official_statuses.get(line_id)
+                        if current_official_status == "運転見合わせ":
+                            print(f"--- [DELAY WATCH] Train {train_number}: Skipping initial notice (Official status is '運転見合わせ').", flush=True)
+                            tracking_info["notified_initial"] = True # ★フラグは立てる
                         else:
-                            print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but line {line_name_jp} in cooldown.", flush=True)
-                        del tracked_delayed_trains[train_number]
+                            last_notification_time = line_cooldown_tracker.get(line_id, 0)
+                            if current_time - last_notification_time > COOLDOWN_SECONDS:
+                                message = (
+                                    f"【{line_name_jp} 運転見合わせ】\n"
+                                    f"{line_name_jp}は{location_name_jp}駅付近で何らかのトラブルが発生した可能性があります。"
+                                    f"今後の情報にご注意ください。(現在遅延: {int(current_delay / 60)}分)"
+                                )
+                                notification_messages.append(message)
+                                line_cooldown_tracker[line_id] = current_time
+                                tracking_info["notified_initial"] = True # ★フラグを立てる
+                                print(f"--- [DELAY WATCH] !!! INITIAL NOTICE SENT for Train {train_number} !!!", flush=True)
+                            else:
+                                print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but line {line_name_jp} in cooldown.", flush=True)
+                                tracking_info["notified_initial"] = True # ★クールダウン中でもフラグは立てる
+                            
                     # --- 再通知（エスカレーション）判定 ---
-                elif count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
+                    if count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
                          message = (
                              f"【{line_name_jp} 運転見合わせ継続中】\n"
                              f"{location_name_jp}駅付近でのトラブル対応が長引いている可能性があります。"
@@ -129,7 +128,7 @@ def check_delay_increase(official_statuses: Dict[str, Optional[str]]) -> Optiona
                          notification_messages.append(message)
                          tracking_info["notified_escalated"] = True # ★再通知フラグを立てる
                          print(f"--- [DELAY WATCH] !!! ESCALATION NOTICE SENT for Train {train_number} !!!", flush=True)
-
+                
                 else: # 遅延が横ばい or 微減
                     tracking_info["last_seen_time"] = current_time
             

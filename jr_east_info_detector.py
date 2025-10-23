@@ -85,13 +85,11 @@ JR_LINE_PREDICTION_DATA = {
             '磯子', '大船'
         }
     },
-        "odpt.Railway:JR-East.Narita": {
-        "name": "成田線",
-        "stations_main": ['千葉方面', '佐倉', '酒々井', '成田', '久住', '滑河', '下総神崎', '大戸', '佐原', '香取', '水郷', '小見川', '笹川', '下総橘', '下総豊里', '椎柴', '松岸', '銚子'], 
-        "stations_abiko": ['我孫子・常磐線方面', '我孫子', '東我孫子', '湖北', '新木', '布佐', '木下', '小林', '安食', '下総松崎', '成田'],
-        "stations_airport": ['成田', '空港第２ビル', '成田空港'], # 空港支線
-        "turning_stations": {'我孫子', '湖北', '布佐', '木下', '安食', '成田','佐原','銚子'}, # 折り返し可能駅
-        "hubs": {'成田', '銚子'} # 主要な接続駅
+        "odpt.Railway:JR-East.NaritaAbikoBranch": {
+        "name": "成田線(我孫子支線)",
+        "stations": ['常磐快速線上野・品川方面', '我孫子', '東我孫子', '湖北', '新木', '布佐', '木下', '小林', '安食', '下総松崎', '成田'],
+        "turning_stations": {'我孫子', '湖北', '布佐', '木下', '安食', '成田'}, # 折り返し可能駅
+        "hubs": {} # 主要な接続駅
     },
         "odpt.Railway:JR-East.Itsukaichi": {
         "name": "五日市線",
@@ -143,6 +141,14 @@ JR_LINE_PREDICTION_DATA = {
     },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
+    "odpt.Railway:JR-East.Keiyo": {"name": "京葉線"},
+    "odpt.Railway:JR-East.Musashino": {"name": "武蔵野線"},
+    "odpt.Railway:JR-East.Yokosuka": {"name": "横須賀線"},
+    "odpt.Railway:JR-East.Joban": {"name": "常磐線"},
+    "odpt.Railway:JR-East.JobanRapid": {"name": "常磐快速線"},
+    "odpt.Railway:JR-East.JobanLocal": {"name": "常磐緩行線"},
+    "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "成田線(空港支線)"},
+    "odpt.Railway:JR-East.Kashima": {"name": "鹿島線"},
     }
 
 last_jr_east_statuses = {}
@@ -236,6 +242,8 @@ def check_jr_east_info() -> Optional[List[str]]:
 
         # === ここからが正しい処理ループ ===
         for line_id, line_info in info_dict.items():
+            if line_id not in JR_LINE_PREDICTION_DATA:
+                continue # 次の路線のループへ
             # ★★★ ここで正しく text を取得 ★★★
             current_status_text: Optional[str] = line_info.get("odpt:trainInformationText", {}).get("ja")
             current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")

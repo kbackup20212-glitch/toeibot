@@ -3,6 +3,7 @@ import re
 # --- この専門家だけが知っている、中央線のルールブック ---
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急NEX": {'NaritaAirportTerminal1','Shinjuku','Ofuna'},
+    "特急NEX(新宿編成)": {'NaritaAirportTerminal1','Shinjuku','Tokyo'},
     "特急湘南": {'Tokyo'},
     "特急": {},
 }
@@ -12,8 +13,10 @@ def _get_suka_limited_express_nickname(train_number_str):
     match = re.search(r'\d+', train_number_str)
     if not match: return "特急"
     num = int(match.group(0))
-    if (2001 <= num <= 2099) or (2201 <= num <= 2299): 
+    if (2001 <= num <= 2099): 
         return "特急NEX"
+    if (2201 <= num <= 2299):
+        return "特急NEX(新宿編成)"
     if (3078 <= num <= 3080): 
         return "特急湘南"
     return "特急"
