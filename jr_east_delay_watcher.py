@@ -74,7 +74,7 @@ def check_delay_increase(official_statuses: Dict[str, Optional[str]]) -> Optiona
                         location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
                         
                         reason = "運転再開を確認" if moved else "遅延が回復"
-                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。"
+                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。\n(遅延: {int(current_delay / 60)}分)"
                         notification_messages.append(message)
                         print(f"--- [DELAY WATCH] !!! RESUMPTION NOTICE for Train {train_number} !!! Reason: {reason}", flush=True)
 

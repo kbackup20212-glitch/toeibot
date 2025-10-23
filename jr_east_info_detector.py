@@ -2,6 +2,7 @@ import os
 import requests
 import re
 from typing import Dict, Any, List, Optional
+from datetime import datetime
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:TrainInformation"
@@ -116,7 +117,7 @@ JR_LINE_PREDICTION_DATA = {
     },
         "odpt.Railway:JR-East.Chuo": {
         "name": "中央本線",
-        "stations":['高尾方面','高尾','相模湖','藤野','上野原','四方津','梁川','鳥沢','猿橋','大月',
+        "stations":['立川方面','高尾','相模湖','藤野','上野原','四方津','梁川','鳥沢','猿橋','大月',
                     '初狩','笹子','甲斐大和','勝沼ぶどう郷','塩山','東山梨','山梨市','春日居町',
                     '石和温泉','酒折','甲府','竜王','塩崎','韮崎','新府','穴山','日野春','長坂','小淵沢',
                     '信濃境','富士見','すずらんの里','青柳','茅野','上諏訪','下諏訪','岡谷','岡谷・松本方面'],
@@ -139,6 +140,27 @@ JR_LINE_PREDICTION_DATA = {
                     '馬喰町','新日本橋','東京','横須賀線方面'],
         "turning_stations":{'千葉','津田沼','東京'}
     },
+    "odpt.Railway:JR-East.Kashima": {
+        "name": "鹿島線",
+        "stations":['佐原','香取','十二橋','潮来','延方','鹿島神宮',
+                    '鹿島サッカースタジアム','大洗鹿島線方面'],
+        "turning_stations":{'佐原','香取','潮来','鹿島神宮'},
+        "hubs": {'鹿島神宮'}
+    },
+    "odpt.Railway:JR-East.Nambu": {
+        "name": "南武線",
+        "stations":['立川','西国立','矢川','谷保','西府','分倍河原','府中本町','南多摩','稲城長沼',
+                    '矢野口','稲田堤','中野島','登戸','宿河原','久地','津田山','武蔵溝ノ口',
+                    '武蔵新城','武蔵中原','武蔵小杉','向河原','平間','鹿島田','矢向','尻手','川崎'],
+        "turning_stations":{'立川','稲城長沼','登戸','武蔵溝ノ口','武蔵中原','矢向','川崎'}
+    },
+    "odpt.Railway:JR-East.Yokohama": {
+        "name": "横浜線",
+        "stations":['八王子','片倉','八王子みなみ野','相原','橋本','相模原','矢部','淵野辺','古淵',
+                    '町田','成瀬','長津田','十日市場','中山','鴨居','小机','新横浜','菊名','大口',
+                    '東神奈川','横浜・桜木町方面'],
+        "turning_stations":{'八王子','橋本','町田','中山','小机','東神奈川'}
+    },
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
     "odpt.Railway:JR-East.Keiyo": {"name": "京葉線"},
@@ -148,13 +170,12 @@ JR_LINE_PREDICTION_DATA = {
     "odpt.Railway:JR-East.JobanRapid": {"name": "常磐快速線"},
     "odpt.Railway:JR-East.JobanLocal": {"name": "常磐緩行線"},
     "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "成田線(空港支線)"},
-    "odpt.Railway:JR-East.Kashima": {"name": "鹿島線"},
     "odpt.Railway:JR-East.Echigo": {"name": "越後線"},
     }
 
 last_jr_east_statuses = {}
 
-NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します","お知らせ","集中工事"]
+NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します","お知らせ","昼間"]
 # ---------------------------------------------------------------
 
 current_official_statuses: Dict[str, Optional[str]] = {}
@@ -460,32 +481,54 @@ def check_jr_east_info() -> Optional[List[str]]:
                 # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
                     NORMAL_STATUS_KEYWORDS = ["平常", "正常"]
-                    # ★★★ 平常運転かどうかのチェックもステータスを使う ★★★
-                    if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
-                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                        message = f"【{line_name_jp} 運行情報】\n{current_status_text}"
-                        notification_messages.append(message)
-                    else:
-                        # 平常運転の場合はログにだけ記録（デバッグ用、不要なら消してもOK）
-                        print(f"--- [JR INFO] Skipping notification for {line_id} (Normal operation) ---", flush=True)
+                    
+                    # --- ステータスと原因を取得 ---
+                    current_info_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
+                    current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                    
+                    # 平常運転ならスキップ
+                    if not current_info_status or any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
+                        continue # 何も通知しない
+
+                    # --- メッセージの組み立て ---
+                    line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
+                    title = f"【{line_name_jp} {current_info_status}】" # 例: 【中央線快速 運転見合わせ】
+
+                    # --- 運転再開見込時刻の処理 ---
+                    resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
+                    if resume_estimate_time_str:
+                        try:
+                            # "HH:MM" 形式に変換
+                            resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
+                            title = f"【{line_name_jp} {current_info_status} {resume_time}】"
+                            
+                            # 前回のステータスと比較して「(変更)」を付けるか判断
+                            last_status_full = last_jr_east_statuses.get(line_id)
+                            if last_status_full: # 前回の情報がある場合
+                                # 前回のテキストからも見込み時刻を抽出してみる (簡易的な比較)
+                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
+                                if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分':
+                                    title += "(変更)" # 時刻が変わっていたら(変更)
+                                elif "変更" in last_status_full: # 前回の時点で「変更」が含まれていたら
+                                    title += "(変更)"
+
+                        except (ValueError, TypeError):
+                            pass # 時刻の変換に失敗しても無視
+
+                    # 本文（原因）
+                    body = f"{current_info_cause}のため{current_info_status.replace('運転再開見込', '運転見合わせ')}" if current_info_cause else "詳細情報確認中"
+                    
+                    final_message = f"{title}\n{body}"
+                    notification_messages.append(final_message)
         
         return notification_messages
 
-    except requests.exceptions.RequestException as req_err:
-        print(f"--- [JR INFO] ERROR: Network error during API request: {req_err}", flush=True)
-        return None
+    except requests.exceptions.RequestException as req_err: return None
     except Exception as e:
-        # ▼▼▼▼▼ ここからが最後の尋問コード ▼▼▼▼▼
-        # エラーの種類と、それが起きた正確な場所を特定する
         import traceback
-        print(f"--- [JR INFO] DETAILED ERROR REPORT ---", flush=True)
-        print(f"  > Error Type: {type(e).__name__}", flush=True)
-        print(f"  > Error Message: {e}", flush=True)
-        print(f"  > Traceback:", flush=True)
-        traceback.print_exc() # エラーが発生した場所までの詳細な経路を出力
-        print(f"------------------------------------", flush=True)
-        # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-        return None # エラーが起きたらNoneを返すのは変わらない
+        print(f"--- [JR INFO] ERROR: An unexpected error occurred in check_jr_east_info: {e}", flush=True)
+        traceback.print_exc()
+        return None
     
 def get_current_official_statuses() -> Dict[str, Optional[str]]:
     return current_official_statuses

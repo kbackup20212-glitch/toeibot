@@ -21,7 +21,7 @@ from toei_delay_watcher import check_toei_delay_increase
 from toei_detector import check_toei_irregularities
 from jr_east_info_detector import get_current_official_statuses
 from jr_east_delay_watcher import check_delay_increase
-
+from tobu_delay_watcher import check_tobu_delay_increase
 
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
@@ -96,10 +96,14 @@ async def periodic_check():
         if toei_delay_messages:
             all_notifications.extend(toei_delay_messages)
 
+        # 8. 東武 遅延増加監視 ---
+        tobu_delay_messages = await bot.loop.run_in_executor(None, check_tobu_delay_increase)
+        if tobu_delay_messages:
+            all_notifications.extend(tobu_delay_messages)
+
         if all_notifications:
             for msg in all_notifications:
                 await channel.send(msg)
-        
         await asyncio.sleep(20)
 
 # (Botの起動部分は変更なし)
