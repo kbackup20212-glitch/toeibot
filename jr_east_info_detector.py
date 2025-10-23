@@ -149,11 +149,12 @@ JR_LINE_PREDICTION_DATA = {
     "odpt.Railway:JR-East.JobanLocal": {"name": "常磐緩行線"},
     "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "成田線(空港支線)"},
     "odpt.Railway:JR-East.Kashima": {"name": "鹿島線"},
+    "odpt.Railway:JR-East.Echigo": {"name": "越後線"},
     }
 
 last_jr_east_statuses = {}
 
-NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します"]
+NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休します","お知らせ","集中工事"]
 # ---------------------------------------------------------------
 
 current_official_statuses: Dict[str, Optional[str]] = {}
