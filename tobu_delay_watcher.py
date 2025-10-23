@@ -50,14 +50,35 @@ TOBU_STATION_DICT = {
 }
 
 TOBU_LINE_NAMES = {
-    "odpt.Railway:Tobu.Tojo": "東武東上線",
-    "odpt.Railway:Tobu.Ogose": "東武越生線",
-    "odpt.Railway:Tobu.Isesaki": "東武伊勢崎線",
-    "odpt.Railway:Tobu.Nikko": "東武日光線",
-    "odpt.Railway:Tobu.UrbanPark": "東武野田線",
-    "odpt.Railway:Tobu.Kiryu": "東武桐生線",
+    "odpt.Railway:Tobu.TobuTojo": "東武東上線",
+    "odpt.Railway:Tobu.TobuOgose": "東武越生線",
+    "odpt.Railway:Tobu.TobuSkytree": "東武ｽｶｲﾂﾘｰﾗｲﾝ",
+    "odpt.Railway:Tobu.TobuIsesaki": "東武伊勢崎線",
+    "odpt.Railway:Tobu.TobuNikko": "東武日光線",
+    "odpt.Railway:Tobu.TobuDaishi": "東武大師線",
+    "odpt.Railway:Tobu.TobuUrbanPark": "東武ｱｰﾊﾞﾝﾊﾟｰｸﾗｲﾝ",
+    "odpt.Railway:Tobu.TobuKiryu": "東武桐生線",
+    "odpt.Railway:Tobu.TobuKameido": "東武亀戸線",
 }
 # ★★★★★★★★★★★★★★★★★★★★★★★★
+
+# --- 1. 部品1：東武線の「路線カルテ」を追加 ---
+TOBU_LINE_PREDICTION_DATA = {
+    "odpt.Railway:Tobu.TobuTojo": {
+        "name": "東武東上線",
+        "stations": [ # 例：東上線（池袋～小川町）
+            '池袋', '北池袋', '下板橋', '大山', '中板橋', 'ときわ台', '上板橋', '東武練馬', 
+            '下赤塚', '成増', '和光市', '朝霞', '朝霞台', '志木', '柳瀬川', 'みずほ台', 
+            '鶴瀬', 'ふじみ野', '上福岡', '新河岸', '川越', '川越市', '霞ケ関', 
+            '鶴ケ島', '若葉', '坂戸', '北坂戸', '高坂', '東松山', '森林公園', 
+            'つきのわ', '武蔵嵐山', '小川町', '東武竹沢', '男衾', 'みなみ寄居', '鉢形', '玉淀', 
+            '寄居'],
+        "turning_stations": {
+            '池袋', '成増', '志木', '上福岡', '川越市', '坂戸', '森林公園', '小川町', '寄居'
+        }
+    },
+    # ★★★ 君が監視したい他の東武路線も、ここに追加してね ★★★
+}
 
 # --- 監視対象の列車情報を保持する辞書 ---
 tracked_delayed_trains: Dict[str, Dict[str, Any]] = {}
@@ -67,8 +88,20 @@ line_cooldown_tracker: Dict[str, float] = {}
 DELAY_THRESHOLD_SECONDS = 3 * 60
 INCREASE_COUNT_THRESHOLD = 5
 ESCALATION_NOTICE_THRESHOLD = 10
+PREDICTION_THRESHOLD = 12
 CLEANUP_THRESHOLD_SECONDS = 15 * 60
 COOLDOWN_SECONDS = 30 * 60
+
+# --- 2. 部品2：「予測ツール」を追加 ---
+def _find_nearest_turning_station(station_list: List[str], turning_stations: set, start_index: int, direction: int) -> Optional[str]:
+    """指定された駅リストを、指定された方向に探索し、折り返し可能な最寄り駅を探す"""
+    current_index = start_index
+    while 0 <= current_index < len(station_list):
+        station_name = station_list[current_index]
+        if station_name in turning_stations:
+            return station_name
+        current_index += direction
+    return None
 
 # --- メイン関数 (名前を tobu に変更) ---
 def check_tobu_delay_increase() -> Optional[List[str]]:
@@ -107,7 +140,7 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
                         location_name_en = tracking_info["last_location_id"].split('.')[-1]
                         location_name_jp = TOBU_STATION_DICT.get(location_name_en, location_name_en)
                         reason = "運転再開を確認" if moved else "遅延が回復"
-                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。\n(遅延: {int(current_delay / 60)}分)"
+                        message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の{reason}しました。(遅延: {int(current_delay / 60)}分)"
                         notification_messages.append(message)
                         print(f"--- [TOBU DELAY WATCH] !!! RESUMPTION NOTICE for Train {train_number} !!! Reason: {reason}", flush=True)
                     del tracked_delayed_trains[train_number]
@@ -140,7 +173,7 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
                             print(f"--- [TOBU DELAY WATCH] !!! INITIAL NOTICE SENT for Train {train_number} !!!", flush=True)
                         else:
                             print(f"--- [TOBU DELAY WATCH] Train {train_number}: Initial threshold reached, but line {line_name_jp} in cooldown.", flush=True)
-                            tracking_info["notified_initial"] = True # フラグは立てる
+                            #tracking_info["notified_initial"] = True # フラグは立てる
                     
                     # --- 再通知（エスカレーション）判定 ---
                     if count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
@@ -152,6 +185,55 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
                          notification_messages.append(message)
                          tracking_info["notified_escalated"] = True
                          print(f"--- [TOBU DELAY WATCH] !!! ESCALATION NOTICE SENT for Train {train_number} !!!", flush=True)
+
+                    #カウント12    
+                    if count >= PREDICTION_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_predicted", False):
+                        
+                        # この路線のカルテがあるか確認
+                        if line_id in TOBU_LINE_PREDICTION_DATA:
+                            line_data = TOBU_LINE_PREDICTION_DATA[line_id]
+                            station_list = line_data.get("stations", [])
+                            turning_stations = line_data.get("turning_stations", set())
+
+                            if station_list and turning_stations:
+                                turn_back_1, turn_back_2 = None, None
+                                try:
+                                    # 止まっている駅のインデックスを探す
+                                    if location_name_jp in station_list:
+                                        idx = station_list.index(location_name_jp)
+                                        # 両方向に折り返し駅を探す
+                                        turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
+                                        turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                                
+                                    # --- メッセージ作成 ---
+                                    message_title = f"【{line_name_jp} 折返し区間予測】"
+                                    running_sections = []
+                                    line_start, line_end = station_list[0], station_list[-1]
+
+                                    if turn_back_1 and turn_back_1 != line_start:
+                                        running_sections.append(f"・{line_start}～{turn_back_1}")
+                                    if turn_back_2 and turn_back_2 != line_end:
+                                        running_sections.append(f"・{turn_back_2}～{line_end}")
+
+                                    # (原因テキストは遅延検知では特定できないので、簡易版)
+                                    reason_text = f"\nこれは、{location_name_jp}駅付近でのトラブルの影響と推測されます。"
+                                    disclaimer = "\n状況により折返し運転が実施されない場合があります。"
+                                    
+                                    final_message = message_title
+                                    if running_sections: final_message += f"\n" + "\n".join(running_sections)
+                                    else: final_message += "\n(運転区間不明)"
+                                    final_message += reason_text
+                                    final_message += disclaimer
+                                    
+                                    notification_messages.append(final_message)
+                                    tracking_info["notified_predicted"] = True # 予測通知フラグを立てる
+                                    print(f"--- [TOBU DELAY WATCH] !!! PREDICTION NOTICE SENT for Train {train_number} !!!", flush=True)
+
+                                except Exception as e:
+                                    print(f"--- [TOBU DELAY WATCH] ERROR during prediction logic: {e}", flush=True)
+                        else:
+                            print(f"--- [TOBU DELAY WATCH] Prediction threshold reached, but no map found for {line_name_jp}.", flush=True)
+                            tracking_info["notified_predicted"] = True
                 
                 else: # 遅延が横ばい or 微減
                     tracking_info["last_seen_time"] = current_time
@@ -163,7 +245,8 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
                      "line_id": line_id, "last_location_id": current_location_id,
                      "last_delay": current_delay, "consecutive_increase_count": 1,
                      "last_seen_time": current_time,
-                     "notified_initial": False, "notified_escalated": False
+                     "notified_initial": False, "notified_escalated": False,
+                     "notified_predicted": False # ★予測フラグの初期値
                  }
 
         # 4. 古い記録の掃除

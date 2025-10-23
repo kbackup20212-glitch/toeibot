@@ -161,10 +161,33 @@ JR_LINE_PREDICTION_DATA = {
                     '東神奈川','横浜・桜木町方面'],
         "turning_stations":{'八王子','橋本','町田','中山','小机','東神奈川'}
     },
+    "odpt.Railway:JR-East.Hachiko": {
+        "name": "八高線",
+        "stations":['八王子','北八王子','小宮','拝島','東福生','箱根ケ崎','金子','東飯能','高麗川',
+                    '毛呂','越生','明覚','小川町','竹沢','折原','寄居','用土','松久','児玉','丹荘',
+                    '群馬藤岡','北藤岡','倉賀野','高崎'],
+        "turning_stations":{'八王子','拝島','箱根ケ崎','東飯能','高麗川','小川町','寄居','児玉',
+                            '群馬藤岡','北藤岡','高崎'},
+        "hubs": {'高麗川'}
+    },
+    "odpt.Railway:JR-East.Keiyo": {
+        "name": "京葉線",
+        "stations":['東京', '八丁堀', '越中島', '潮見', '新木場', '葛西臨海公園', '舞浜', '新浦安', 
+                    '市川塩浜', '二俣新町', '南船橋', '新習志野', '幕張豊砂', '海浜幕張', '検見川浜', 
+                    '稲毛海岸', '千葉みなと', '蘇我'],
+"turning_stations":{'東京','新木場','南船橋','新習志野','海浜幕張','千葉みなと','蘇我'},
+    },
+    "odpt.Railway:JR-East.Musashino": {
+        "name": "武蔵野線",
+        "stations":['府中本町', '北府中', '西国分寺', '新小平', '新秋津', '東所沢', '新座', '北朝霞', 
+                    '西浦和', '武蔵浦和', '南浦和', '東浦和', '東川口', '南越谷', '越谷レイクタウン', 
+                    '吉川', '吉川美南', '新三郷', '三郷', '南流山', '新松戸', '新八柱', '東松戸', 
+                    '市川大野', '船橋法典', '西船橋','京葉線方面'],
+        "turning_stations":{'府中本町','東所沢','吉川美南','西船橋'},
+    },
+
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
     "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
-    "odpt.Railway:JR-East.Keiyo": {"name": "京葉線"},
-    "odpt.Railway:JR-East.Musashino": {"name": "武蔵野線"},
     "odpt.Railway:JR-East.Yokosuka": {"name": "横須賀線"},
     "odpt.Railway:JR-East.Joban": {"name": "常磐線"},
     "odpt.Railway:JR-East.JobanRapid": {"name": "常磐快速線"},
@@ -351,6 +374,16 @@ def check_jr_east_info() -> Optional[List[str]]:
                             forced_station = "大崎"
                         elif "線内での" in current_status_text:
                             skip_prediction = True
+                    elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal":
+                        if "中央線快速電車での" in current_status_text:
+                            ChuoRapid_status = info_dict.get("odpt.Railway:JR-East.ChuoRapid", {}).get("odpt:trainInformationText", {}).get("ja")
+                            if ChuoRapid_status: status_to_check = ChuoRapid_status
+                        elif "総武快速線内での" in current_status_text:
+                            SobuRapid_status = info_dict.get("odpt.Railway:JR-East.SobuRapid", {}).get("odpt:trainInformationText", {}).get("ja")
+                            if SobuRapid_status: status_to_check = SobuRapid_status
+                        elif "山手線内での" in current_status_text:
+                            yamanote_status = info_dict.get("odpt.Railway:JR-East.Yamanote", {}).get("odpt:trainInformationText", {}).get("ja")
+                            if yamanote_status: status_to_check = yamanote_status
                     
                     # --- 予測実行 ---
                     if not skip_prediction:
@@ -492,7 +525,7 @@ def check_jr_east_info() -> Optional[List[str]]:
 
                     # --- メッセージの組み立て ---
                     line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                    title = f"【{line_name_jp} {current_info_status}】" # 例: 【中央線快速 運転見合わせ】
+                    title = f"【[公式情報]{line_name_jp} {current_info_status}】" # 例: 【[公式情報]中央線快速 運転見合わせ】
 
                     # --- 運転再開見込時刻の処理 ---
                     resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
