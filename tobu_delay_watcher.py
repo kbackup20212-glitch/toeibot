@@ -50,15 +50,15 @@ TOBU_STATION_DICT = {
 }
 
 TOBU_LINE_NAMES = {
-    "odpt.Railway:Tobu.TobuTojo": "東武東上線",
-    "odpt.Railway:Tobu.TobuOgose": "東武越生線",
+    "odpt.Railway:Tobu.Tojo": "東武東上線",
+    "odpt.Railway:Tobu.Ogose": "東武越生線",
     "odpt.Railway:Tobu.TobuSkytree": "東武ｽｶｲﾂﾘｰﾗｲﾝ",
-    "odpt.Railway:Tobu.TobuIsesaki": "東武伊勢崎線",
-    "odpt.Railway:Tobu.TobuNikko": "東武日光線",
-    "odpt.Railway:Tobu.TobuDaishi": "東武大師線",
+    "odpt.Railway:Tobu.Isesaki": "東武伊勢崎線",
+    "odpt.Railway:Tobu.Nikko": "東武日光線",
+    "odpt.Railway:Tobu.Daishi": "東武大師線",
     "odpt.Railway:Tobu.TobuUrbanPark": "東武ｱｰﾊﾞﾝﾊﾟｰｸﾗｲﾝ",
-    "odpt.Railway:Tobu.TobuKiryu": "東武桐生線",
-    "odpt.Railway:Tobu.TobuKameido": "東武亀戸線",
+    "odpt.Railway:Tobu.Kiryu": "東武桐生線",
+    "odpt.Railway:Tobu.Kameido": "東武亀戸線",
 }
 # ★★★★★★★★★★★★★★★★★★★★★★★★
 

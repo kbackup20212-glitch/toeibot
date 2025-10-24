@@ -46,6 +46,7 @@ DELAY_THRESHOLD_SECONDS = 3 * 60
 INITIAL_NOTICE_THRESHOLD = 5     # ★★★ 最初の通知を出すカウント ★★★
 ESCALATION_NOTICE_THRESHOLD = 10 # ★★★ 再通知を出すカウント ★★★
 GROUP_ANALYSIS_THRESHOLD = 2
+GRACE_STATION_COUNT = 4
 CLEANUP_THRESHOLD_SECONDS = 15 * 60
 COOLDOWN_SECONDS = 30 * 60
 
@@ -53,7 +54,7 @@ COOLDOWN_SECONDS = 30 * 60
 def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: List[Dict[str, Any]]) -> List[str]:
     """
     指定された路線の全列車データから、集団遅延の「クラスター」を見つけて分析し、
-    通知メッセージの「リスト」を返す。
+    通知メッセージの「リスト」を返す。(猶予カウント方式)
     """
     global tracked_delayed_trains
     
@@ -76,14 +77,15 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
                 station_delay_map[index] = []
             station_delay_map[index].append(train)
 
-    # 2. 遅延クラスター（小隊）を見つける
+    # 2. 遅延クラスター（小隊）を見つける (猶予カウント方式)
     clusters: List[Dict[str, Any]] = []
     current_cluster: Optional[Dict[str, Any]] = None
+    grace_count = 0 # ★★★ 猶予カウント ★★★
     
     for index in range(len(station_list)): # 駅リストを順番に走査
         trains_at_this_station = station_delay_map.get(index, [])
         
-        is_delayed_station = False # この駅に不審な遅延列車がいるか？
+        is_delayed_station = False # この駅に不審な列車がいるか？
         if trains_at_this_station:
             for train in trains_at_this_station:
                 train_number = train.get("odpt:trainNumber")
@@ -93,7 +95,8 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
                     break
         
         if is_delayed_station:
-            # 遅延駅を見つけた
+            # 不審な駅を見つけた
+            grace_count = 0 # 猶予カウントをリセット
             if current_cluster is None:
                 # 新しいクラスターを開始
                 current_cluster = {"indices": [index], "trains": trains_at_this_station}
@@ -102,11 +105,18 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
                 current_cluster["indices"].append(index)
                 current_cluster["trains"].extend(trains_at_this_station)
         else:
-            # 無遅延の駅（＝分断箇所）を見つけた
+            # 無遅延の駅を見つけた
             if current_cluster is not None:
-                # クラスターがここで途切れたので、リストに追加
-                clusters.append(current_cluster)
-                current_cluster = None
+                # 猶予カウントを増やす
+                grace_count += 1
+                print(f"--- [DELAY WATCH] Grace count increased to {grace_count} at {station_list[index]}", flush=True)
+                
+                # 猶予カウントが閾値 (4) を超えたら、集団を分断する
+                if grace_count > GRACE_STATION_COUNT:
+                    print(f"--- [DELAY WATCH] Grace count exceeded. Splitting cluster.", flush=True)
+                    clusters.append(current_cluster)
+                    current_cluster = None
+                    grace_count = 0 # 分断したのでリセット
     
     if current_cluster is not None: # 最後のクラスターを追加
         clusters.append(current_cluster)
@@ -246,7 +256,7 @@ def check_delay_increase(official_statuses: Dict[str, Optional[str]]) -> Optiona
                             range_text = STATION_DICT.get(tracking_info["last_location_id"].split('.')[-1], "不明な場所")
                             message = (
                                 f"【{line_name_jp} 運転再開】\n"
-                                f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
+                                f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。(最大{max_delay}分遅れ)"
                             )
                         
                         notification_messages.append(message)

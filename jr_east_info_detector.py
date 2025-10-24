@@ -206,13 +206,48 @@ JR_LINE_PREDICTION_DATA = {
                     '市川大野', '船橋法典', '西船橋','京葉線方面'],
         "turning_stations":{'府中本町','東所沢','吉川美南','西船橋'},
     },
+    "odpt.Railway:JR-East.JobanRapid": {
+        "name": "常磐快速線",
+        "stations":['品川方面','上野','日暮里','三河島','南千住','北千住','綾瀬','亀有','金町','松戸',
+                    '北松戸','馬橋','新松戸','北小金','南柏','柏','北柏','我孫子','天王台','取手',
+                    '土浦方面'],
+        "turning_stations":{'上野','北千住','松戸','我孫子','取手'},
+    },
+    "odpt.Railway:JR-East.JobanLocal": {
+        "name": "常磐緩行線",
+        "stations":['千代田線方面','綾瀬','亀有','金町','松戸','北松戸','馬橋','新松戸','北小金','南柏',
+                    '柏','北柏','我孫子','天王台','取手'],
+        "turning_stations":{'綾瀬','松戸','柏','我孫子','取手'},
+    },
+    "odpt.Railway:JR-East.Joban": {
+        "name": "常磐線",
+        "stations":['上り方面','取手','藤代','龍ケ崎市','牛久','ひたち野うしく','荒川沖','土浦',
+                    '神立','高浜','石岡','羽鳥','岩間','友部','内原','赤塚','偕楽園','水戸','勝田'
+                    '佐和','東海','大甕','常陸多賀','日立','小木津','十王','高萩',
+                    '南仲郷','磯原','大津港','勿来','植田','泉','湯本','内郷','いわき',
+                    '草野','四ツ倉','久ノ浜','末続','広野','Jヴィレッジ','木戸','竜田','富岡',
+                    '夜ノ森','大野','双葉','浪江','桃内','小高','磐城太田','原ノ町',
+                    '鹿島','日立木','相馬','駒ケ嶺','新地','坂元','山下','浜吉田','亘理','逢隈','岩沼',
+                    '下り方面'],
+        "turning_stations":{'取手','龍ケ崎市','土浦','友部','水戸','勝田','東海','大津港','いわき'
+                            '久ノ浜','富岡','原ノ町','岩沼'},
+    },
+    "odpt.Railway:JR-East.ShonanShinjuku": {
+        "name": "湘南新宿ﾗｲﾝ",
+        "stations":['高崎・宇都宮方面','大宮','さいたま新都心', '与野', '北浦和', '浦和', '南浦和', 
+                    '蕨', '西川口', '川口', '赤羽', '東十条', '王子', '上中里', '田端','駒込','巣鴨',
+                    '大塚','池袋','目白','高田馬場','新大久保','新宿','代々木','原宿','渋谷','恵比寿',
+                    '目黒','五反田','大崎','西大井','武蔵小杉','新川崎','横浜','逗子・平塚方面'],
+        "turning_stations":{'大宮','池袋','新宿','大崎','横浜'},
+    },
+    "odpt.Railway:JR-East.Yokosuka": {
+        "name": "横須賀線",
+        "stations":['東京','新橋','品川','西大井','武蔵小杉','新川崎','横浜','保土ヶ谷','東戸塚',
+                    '戸塚','大船','北鎌倉','鎌倉','逗子','東逗子','田浦','横須賀','衣笠','久里浜'],
+        "turning_stations":{'東京','品川','横浜','大船','逗子','横須賀','久里浜'},
+    },
 
     "odpt.Railway:JR-East.Yamanote": {"name": "山手線"},
-    "odpt.Railway:JR-East.ShonanShinjuku": {"name": "湘南新宿ライン"},
-    "odpt.Railway:JR-East.Yokosuka": {"name": "横須賀線"},
-    "odpt.Railway:JR-East.Joban": {"name": "常磐線"},
-    "odpt.Railway:JR-East.JobanRapid": {"name": "常磐快速線"},
-    "odpt.Railway:JR-East.JobanLocal": {"name": "常磐緩行線"},
     "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "成田線(空港支線)"},
     "odpt.Railway:JR-East.Echigo": {"name": "越後線"},
     }
@@ -578,7 +613,7 @@ def check_jr_east_info() -> Optional[List[str]]:
                         # location_part から、最後の単語（＝駅名や区間名）だけを抜き出す
                         location_elements = re.split(r'[、\s]', location_part)
                         actual_location = location_elements[-1] if location_elements else location_part
-                        reason_text = f"これは、{actual_location}での{cause}の影響です。"
+                        reason_text = f"{actual_location}での{cause}の影響で{current_info_status}しています。"
                     
                     # パターン2: どのパターンにも一致しなかった場合
                     if not reason_text:
