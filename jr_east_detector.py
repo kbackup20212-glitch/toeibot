@@ -112,7 +112,7 @@ STATION_DICT = {
 
     #武蔵野線
     'FubashiHoten': '船橋法典', 'Ichikawaono': '市川大野', 'HigashiMatsudo': '東松戸',
-    'ShinYabashira': '新八柱', 'ShimMatsudo': '新松戸', 'MinamiNagareyama': '南流山',
+    'ShinYahashira': '新八柱', 'ShimMatsudo': '新松戸', 'MinamiNagareyama': '南流山',
     'Misato': '三郷', 'ShimMisato': '新三郷', 'Yoshikawa': '吉川', 'YoshikawaMinami': '吉川美南',
     'KoshigayaLakeTown': '越谷レイクタウン',
     'MinamiKoshigaya': '南越谷', 'HigashiKawaguchi': '東川口', 'HigashiUrawa': '東浦和',
@@ -260,7 +260,7 @@ STATION_DICT = {
     #相鉄線
     'Yokohama': '横浜', 'Hodogaya': '保土ケ谷', 'Nishiya': '西谷',
     'Futamatagawa': '二俣川', 'Seya': '瀬谷',
-    'Hazawayokohamakokudai': '羽沢横浜国大',
+    'HazawaYokohamaKokudai': '羽沢横浜国大',
 
     #八高・川越線(川越～八王子)
     'Hachioji': '八王子', 'KitaHachioji': '北八王子', 'Komiya': '小宮', 
@@ -470,6 +470,7 @@ JR_LINES_TO_MONITOR = [
             ('odpt.TrainType:JR-East.SpecialRapid', 'Shinagawa'),
             ('odpt.TrainType:JR-East.SpecialRapid', 'Tsuchiura'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'Shinagawa'),
+            ('odpt.TrainType:JR-East.LimitedExpress', 'Ueno'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'Iwaki'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'Sendai'),
             ('odpt.TrainType:JR-East.LimitedExpress', 'Katsuta'),

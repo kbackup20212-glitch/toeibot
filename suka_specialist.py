@@ -4,7 +4,7 @@ import re
 LIMITED_EXPRESS_REGULAR_DESTINATIONS = {
     "特急NEX": {'NaritaAirportTerminal1','Shinjuku','Ofuna'},
     "特急NEX(新宿編成)": {'NaritaAirportTerminal1','Shinjuku','Tokyo'},
-    "特急湘南": {'Tokyo'},
+    "特急湘南": {'Tokyo','Shinjuku','Odawara'},
     "特急しおさい": {'Choshi', 'Sakura', 'Naruto', 'Tokyo'},
     "特急": {},
 }
@@ -18,7 +18,7 @@ def _get_suka_limited_express_nickname(train_number_str):
         return "特急NEX"
     if (2201 <= num <= 2299):
         return "特急NEX(新宿編成)"
-    if (3078 <= num <= 3080): 
+    if (3078 <= num <= 3099): 
         return "特急湘南"
     if (4001 <= num <= 4199): 
         return "特急しおさい"

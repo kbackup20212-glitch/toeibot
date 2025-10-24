@@ -7,6 +7,18 @@ from datetime import datetime
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:TrainInformation"
 
+
+RAIL_DIRECTION_NAMES = {
+    "odpt.RailDirection:Inbound": "上り線",
+    "odpt.RailDirection:Outbound": "下り線",
+    "odpt.RailDirection:Northbound": "北行",
+    "odpt.RailDirection:Southbound": "南行",
+    "odpt.RailDirection:Eastbound": "東行",
+    "odpt.RailDirection:Westbound": "西行",
+    "odpt.RailDirection:InnerLoop": "内回り",
+    "odpt.RailDirection:OuterLoop": "外回り",
+}
+
 # ---------------------------------------------------------------
 # ▼▼▼ 路線ごとの「カルテ棚」エリア ▼▼▼
 # ---------------------------------------------------------------
@@ -513,19 +525,19 @@ def check_jr_east_info() -> Optional[List[str]]:
                 
                 # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
-                    NORMAL_STATUS_KEYWORDS = ["平常", "正常"]
+                    # キーワードリストはここで一回だけ定義
+                    NORMAL_STATUS_KEYWORDS = ["平常", "正常", "お知らせ"]
                     
                     # --- ステータスと原因を取得 ---
                     current_info_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
-                    current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
                     
-                    # 平常運転ならスキップ
+                    # 平常運転・お知らせはスキップ
                     if not current_info_status or any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
-                        continue # 何も通知しない
+                        continue # この路線の通知処理をスキップ
 
-                    # --- メッセージの組み立て ---
+                    # --- スキップされなかったら、通知を作成 ---
                     line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                    title = f"【[公式情報]{line_name_jp} {current_info_status}】" # 例: 【[公式情報]中央線快速 運転見合わせ】
+                    title = f"【{line_name_jp} {current_info_status}】" # デフォルトのタイトル
 
                     # --- 運転再開見込時刻の処理 ---
                     resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
@@ -533,26 +545,46 @@ def check_jr_east_info() -> Optional[List[str]]:
                         try:
                             # "HH:MM" 形式に変換
                             resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
-                            title = f"【{line_name_jp} {current_info_status} {resume_time}】"
+                            title = f"【公式情報: {line_name_jp} {current_info_status} {resume_time}】" # タイトルを上書き
                             
-                            # 前回のステータスと比較して「(変更)」を付けるか判断
+                            # (変更検知ロジックは変更なし)
                             last_status_full = last_jr_east_statuses.get(line_id)
-                            if last_status_full: # 前回の情報がある場合
-                                # 前回のテキストからも見込み時刻を抽出してみる (簡易的な比較)
+                            if last_status_full:
                                 last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
                                 if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分':
-                                    title += "(変更)" # 時刻が変わっていたら(変更)
-                                elif "変更" in last_status_full: # 前回の時点で「変更」が含まれていたら
                                     title += "(変更)"
-
+                                elif "変更" in last_status_full:
+                                    title += "(変更)"
                         except (ValueError, TypeError):
                             pass # 時刻の変換に失敗しても無視
 
-                    # 本文（原因）
-                    body = f"{current_info_cause}のため{current_info_status.replace('運転再開見込', '運転見合わせ')}" if current_info_cause else "詳細情報確認中"
+                    # ▼▼▼▼▼ ここからが新しい「賢い本文」作成ロジック ▼▼▼▼▼
+                    reason_text = ""
+                    # パターン1: 「(場所)での(原因)の影響で」を探す
+                    reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', current_status_text) # status_to_checkではなくcurrent_status_text
+
+                    if reason_match:
+                        location_part = reason_match.group(1).strip()
+                        cause = reason_match.group(2).strip()
+                        # location_part から、最後の単語（＝駅名や区間名）だけを抜き出す
+                        location_elements = re.split(r'[、\s]', location_part)
+                        actual_location = location_elements[-1] if location_elements else location_part
+                        reason_text = f"これは、{actual_location}での{cause}の影響です。"
                     
-                    final_message = f"{title}\n{body}"
+                    # パターン2: どのパターンにも一致しなかった場合
+                    if not reason_text:
+                        # APIが返す「原因」をそのまま使う
+                        current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                        if current_info_cause:
+                            reason_text = f"{current_info_cause}のため、{current_info_status}となっています。"
+                        else:
+                            reason_text = "詳細情報確認中" # 最終手段
+                    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+                    final_message = f"{title}\n{reason_text}"
                     notification_messages.append(final_message)
+
+        # (return notification_messages はループの外)
         
         return notification_messages
 
