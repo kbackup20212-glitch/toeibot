@@ -51,6 +51,15 @@ JR_LINE_PREDICTION_DATA = {
             'りんかい線内', '大宮', '川越'
         }  
     },
+    "odpt.Railway:JR-East.SotetsuDirect": {
+        "name": "相鉄直通線",
+        "stations": [
+            '相鉄線方面', '羽沢横浜国大', '武蔵小杉', '西大井', '大崎','五反田','目黒', '恵比寿', 
+            '渋谷','原宿','代々木', '新宿'],
+        "turning_stations": {
+            'りんかい線内', '大崎', '新宿', '池袋', '赤羽', '武蔵浦和', '大宮'
+        },  
+    },
     "odpt.Railway:JR-East.Takasaki": {
         "name": "高崎線",
         "stations": [
