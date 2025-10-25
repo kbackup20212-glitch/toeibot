@@ -525,7 +525,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 湘南新宿ライン
         "id": "odpt.Railway:JR-East.ShonanShinjuku",
-        "name": "🟧湘南新宿ﾗｲﾝ",
+        "name": "🟥湘南新宿ﾗｲﾝ",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Odawara'),
             ('odpt.TrainType:JR-East.Local', 'Kozu'),

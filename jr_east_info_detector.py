@@ -233,7 +233,7 @@ JR_LINE_PREDICTION_DATA = {
                             '久ノ浜','富岡','原ノ町','岩沼'},
     },
     "odpt.Railway:JR-East.ShonanShinjuku": {
-        "name": "🟧湘南新宿ﾗｲﾝ",
+        "name": "🟥湘南新宿ﾗｲﾝ",
         "stations":['高崎・宇都宮方面','大宮','さいたま新都心', '与野', '北浦和', '浦和', '南浦和', 
                     '蕨', '西川口', '川口', '赤羽', '東十条', '王子', '上中里', '田端','駒込','巣鴨',
                     '大塚','池袋','目白','高田馬場','新大久保','新宿','代々木','原宿','渋谷','恵比寿',
@@ -450,8 +450,21 @@ def check_jr_east_info() -> Optional[List[str]]:
                 if not prediction_made:
                     NORMAL_STATUS_KEYWORDS = ["平常", "正常", "お知らせ"]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
+                        
+                        # ★★★ 翻訳辞書 ★★★
+                        STATUS_PHRASES = {
+                            "遅延": "遅延しています。",
+                            "運転見合わせ": "運転を見合わせています。",
+                            "運転再開": "運転を再開しました。",
+                            "運転再開見込": "運転再開見込が発表されています。", # 「しています」を削除
+                        }
+                        
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                        title = f"【{line_name_jp} {current_info_status}】"
+                        
+                        # ★★★ ステータスを辞書から引く ★★★
+                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 見つからなければそのまま
+                        
+                        title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータス名のまま
                         
                         resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
                         if resume_estimate_time_str:
@@ -471,9 +484,9 @@ def check_jr_east_info() -> Optional[List[str]]:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
                             if linked_line_name:
-                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{current_info_status}しています。"
+                                reason_text = f"{reason_text}{status_jp}"
                             else:
-                                reason_text = f"{actual_location}での{cause}のため、{current_info_status}しています。"
+                                reason_text = f"{current_info_cause}のため、{status_jp}"
                         elif not reason_text:
                             current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
                             if current_info_cause: reason_text = f"{current_info_cause}のため、{current_info_status}しています。"
