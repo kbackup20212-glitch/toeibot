@@ -262,14 +262,14 @@ NORMAL_STATUS_KEYWORDS = ["平常", "遅れ", "運転を再開", "運休しま�
 current_official_statuses: Dict[str, Optional[str]] = {}
 
 # --- ヘルパー関数 ---
-def _find_nearest_turning_station(station_list, turning_stations, start_index, direction):
+def _find_nearest_turning_station(station_list: List[str], turning_stations: set, start_index: int, direction: int) -> Optional[str]:
     current_index = start_index
     while 0 <= current_index < len(station_list):
         station_name = station_list[current_index]
         if station_name in turning_stations: return station_name
         current_index += direction
     return None
-def _find_nearest_hub(station_list, hubs, start_index, direction):
+def _find_nearest_hub(station_list: List[str], hubs: set, start_index: int, direction: int) -> Optional[str]:
     current_index = start_index
     while 0 <= current_index < len(station_list):
         station_name = station_list[current_index]
@@ -277,7 +277,7 @@ def _find_nearest_hub(station_list, hubs, start_index, direction):
         current_index += direction
     return None
 
-# --- メイン関数 (構造修正・最終完成版) ---
+# --- メイン関数 (ロジック共通化・最終版) ---
 def check_jr_east_info() -> Optional[List[str]]:
     global last_jr_east_statuses, current_official_info
     notification_messages: List[str] = []
@@ -297,11 +297,12 @@ def check_jr_east_info() -> Optional[List[str]]:
                  info_dict[item["odpt:railway"]] = item
 
         for line_id, line_info in info_dict.items():
+            
             if line_id not in JR_LINE_PREDICTION_DATA: continue
 
             current_status_text: str = line_info["odpt:trainInformationText"]["ja"]
             current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")
-            current_official_info[line_id] = line_info # ★公式情報を丸ごと保存
+            current_official_info[line_id] = line_info
             
             if not current_status_text: continue
 
@@ -310,25 +311,47 @@ def check_jr_east_info() -> Optional[List[str]]:
                 prediction_made = False
                 skip_prediction = False
 
+                # ▼▼▼ 路線連携ロジックを「外」に配置 ▼▼▼
+                status_to_check: str = current_status_text
+                linked_line_name: Optional[str] = None
+                forced_station = None
+                linked_line_id_str: Optional[str] = None
+
+                if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status_text:
+                    linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                elif line_id == "odpt.Railway:JR-East.SaikyoKawagoe": # 埼京線
+                    if "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
+                    elif "湘南新宿ライン内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
+                    elif "東海道線内での" in current_status_text or "横須賀線内での" in current_status_text:
+                        forced_station = "大崎"
+                    elif "線内での" in current_status_text:
+                        skip_prediction = True
+                elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal": # 中央・総武線
+                    if "中央線快速電車での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ChuoRapid"
+                    elif "総武快速線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SobuRapid"
+                    elif "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
+                
+                # 連携先IDが決まっていたら、情報を取得
+                if linked_line_id_str:
+                    linked_info = info_dict.get(linked_line_id_str, {})
+                    linked_status = linked_info.get("odpt:trainInformationText", {}).get("ja")
+                    if linked_status:
+                        status_to_check = linked_status.strip()
+                        linked_line_name = JR_LINE_PREDICTION_DATA.get(linked_line_id_str, {}).get("name", linked_line_id_str.split('.')[-1])
+                # ▲▲▲▲▲▲ 路線連携ロジックここまで ▲▲▲▲▲▲
+
                 # ▼▼▼ 予測処理ブロック ▼▼▼
                 if "運転を見合わせています" in current_status_text and \
                    (current_info_status is None or (current_info_status != "運転再開見込" and "運転再開" not in current_info_status)):
                     
-                    # --- ★★★ ここで変数を無条件に定義 ★★★ ---
                     line_data = JR_LINE_PREDICTION_DATA[line_id]
                     line_name_jp = line_data.get("name", line_id)
                     station_list: List[str] = []
                     turning_stations = line_data.get("turning_stations", set())
                     hubs = line_data.get("hubs", set())
-                    is_branch_line = False # (丸ノ内線用、JRでは使わないが一応)
-                    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+                    is_branch_line = False
 
-                    status_to_check: str = current_status_text
-                    forced_station = None
-                    linked_line_name: Optional[str] = None
-
-                    # --- 路線ごとの駅リスト設定 & 路線連携 ---
-                    if line_id == "odpt.Railway:JR-East.Narita":
+                    if line_id == "odpt.Railway:JR-East.Narita" or line_id == "odpt.Railway:JR-East.NaritaAbikoBranch":
                         match_between = re.search(r'([^\s～]+?)駅～([^\s～]+?)駅', status_to_check)
                         match_at = re.search(r'([^\s]+?)駅で', status_to_check)
                         stop_station = ""
@@ -344,79 +367,47 @@ def check_jr_east_info() -> Optional[List[str]]:
                         station_list = line_data.get("stations", [])
                     
                     if not station_list: skip_prediction = True
-
-                if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status_text:
-                    linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
-                    sobu_info = info_dict.get(linked_line_id_str, {})
-                    sobu_status = sobu_info.get("odpt:trainInformationText", {}).get("ja")
-                    if sobu_status:
-                        status_to_check = sobu_status
-                        linked_line_name = JR_LINE_PREDICTION_DATA.get(linked_line_id_str, {}).get("name", "中央・総武線各駅停車")
-
-                elif line_id == "odpt.Railway:JR-East.Saikyo":
-                    linked_line_id_str = None
-                    if "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
-                    elif "湘南新宿ライン内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
-                    
-                    if linked_line_id_str:
-                        linked_info = info_dict.get(linked_line_id_str, {})
-                        linked_status = linked_info.get("odpt:trainInformationText", {}).get("ja")
-                        if linked_status:
-                            status_to_check = linked_status
-                            linked_line_name = JR_LINE_PREDICTION_DATA.get(linked_line_id_str, {}).get("name", linked_line_id_str.split('.')[-1])
-                    
-                    elif "東海道線内での" in current_status_text or "横須賀線内での" in current_status_text:
-                        forced_station = "大崎"
-                    elif "線内での" in current_status_text:
-                        skip_prediction = True
-                elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal":
-                    if "中央線快速電車での" in current_status_text:
-                        ChuoRapid_status = info_dict.get("odpt.Railway:JR-East.ChuoRapid", {}).get("odpt:trainInformationText", {}).get("ja")
-                        if ChuoRapid_status: status_to_check = ChuoRapid_status
-                        linked_line_id_str = "odpt.Railway:JR-East.ChuoRapid"
-                    elif "総武快速線内での" in current_status_text:
-                        SobuRapid_status = info_dict.get("odpt.Railway:JR-East.SobuRapid", {}).get("odpt:trainInformationText", {}).get("ja")
-                        if SobuRapid_status: status_to_check = SobuRapid_status
-                        linked_line_id_str = "odpt.Railway:JR-East.SobuRapid"
-                    elif "山手線内での" in current_status_text:
-                        yamanote_status = info_dict.get("odpt.Railway:JR-East.Yamanote", {}).get("odpt:trainInformationText", {}).get("ja")
-                        if yamanote_status: status_to_check = yamanote_status
-                        linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
                     
                     # --- 予測実行 ---
                     if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
                         try:
-                            match_between = re.search(r'([^\s～]+?)\s*駅?\s*～\s*([^\s、。～]+?)\s*駅間', status_to_check)
-                            match_at = re.search(r'([^\s、。～]+?)\s*駅\s*で', status_to_check)
-                            station_to_compare = ""
-                            station1, station2, station = None, None, None
-
-                            if match_between:
-                                station1_raw = match_between.group(1); station2_raw = match_between.group(2)
-                                station1 = re.split(r'[、\s]', station1_raw)[-1].strip(); station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
-                                station_to_compare = station1
-                            elif match_at:
-                                station_raw = match_at.group(1)
-                                station = re.split(r'[、\s]', station_raw)[-1].strip()
-                                station_to_compare = station
-
-                            if station_to_compare and station_to_compare in station_list:
-                                if match_between:
-                                    idx1, idx2 = station_list.index(station1), station_list.index(station2)
-                                    b_idx1, b_idx2 = min(idx1, idx2), max(idx1, idx2)
-                                    s_before, s_after = station_list[b_idx1], station_list[b_idx2]
-                                    if s_before in turning_stations: turn_back_1 = s_before
-                                    else: turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, b_idx1 - 1, -1)
-                                    if s_after in turning_stations: turn_back_2 = s_after
-                                    else: turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, b_idx2 + 1, 1)
-                                elif match_at:
-                                    idx = station_list.index(station)
+                            if forced_station:
+                                if forced_station in station_list:
+                                    idx = station_list.index(forced_station)
                                     turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                     turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
+                            else:
+                                match_between = re.search(r'([^\s～、]+?)\s*駅?\s*～\s*([^\s、。～]+?)\s*駅間', status_to_check)
+                                match_at = re.search(r'([^\s、。～]+?)\s*駅\s*で', status_to_check)
+                                station_to_compare = ""
+                                station1, station2, station = None, None, None
+
+                                if match_between:
+                                    station1_raw = match_between.group(1); station2_raw = match_between.group(2)
+                                    station1 = re.split(r'[、\s]', station1_raw)[-1].strip(); station2 = re.split(r'[、\s]', station2_raw)[-1].strip()
+                                    station_to_compare = station1
+                                elif match_at:
+                                    station_raw = match_at.group(1)
+                                    station = re.split(r'[、\s]', station_raw)[-1].strip()
+                                    station_to_compare = station
+
+                                if station_to_compare and station_to_compare in station_list:
+                                    if match_between:
+                                        idx1, idx2 = station_list.index(station1), station_list.index(station2)
+                                        b_idx1, b_idx2 = min(idx1, idx2), max(idx1, idx2)
+                                        s_before, s_after = station_list[b_idx1], station_list[b_idx2]
+                                        if s_before in turning_stations: turn_back_1 = s_before
+                                        else: turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, b_idx1 - 1, -1)
+                                        if s_after in turning_stations: turn_back_2 = s_after
+                                        else: turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, b_idx2 + 1, 1)
+                                    elif match_at:
+                                        idx = station_list.index(station)
+                                        turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
+                                        turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
                         except ValueError as e: pass
                         except Exception as find_err: pass
-                        
+
                         # --- メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
                         running_sections = []
@@ -437,11 +428,14 @@ def check_jr_east_info() -> Optional[List[str]]:
                         if reason_match:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                            if linked_line_name: reason_text = f"\nこれは、{linked_line_name} {actual_location}での{cause}の影響です。"
-                            else: reason_text = f"\nこれは、{actual_location}での{cause}の影響です。"
+                            if linked_line_name:
+                                reason_text = f"\nこれは、{linked_line_name} {actual_location}での{cause}の影響です。"
+                            else:
+                                reason_text = f"\nこれは、{actual_location}での{cause}の影響です。"
                         elif not reason_text:
                             reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status_text)
-                            if reason_match_simple: reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
+                            if reason_match_simple:
+                                reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
                         
                         disclaimer = "\n状況により折返し運転が実施されない場合があります。"
                         final_message = message_title
@@ -451,12 +445,12 @@ def check_jr_east_info() -> Optional[List[str]]:
                         final_message += disclaimer
                         notification_messages.append(final_message)
                         prediction_made = True
-
-                # ▼▼▼ 通常の運行情報通知 (賢い要約版) ▼▼▼
+                
+                # ▼▼▼ 通常の運行情報通知 ▼▼▼
                 if not prediction_made:
                     NORMAL_STATUS_KEYWORDS = ["平常", "正常", "お知らせ"]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
-                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id) # ★ここで line_name_jp が決まる
+                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
                         title = f"【{line_name_jp} {current_info_status}】"
                         
                         resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
@@ -476,8 +470,10 @@ def check_jr_east_info() -> Optional[List[str]]:
                         if reason_match:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                            if linked_line_name: reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{current_info_status}となっています。"
-                            else: reason_text = f"{actual_location}での{cause}のため、{current_info_status}となっています。"
+                            if linked_line_name:
+                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{current_info_status}となっています。"
+                            else:
+                                reason_text = f"{actual_location}での{cause}のため、{current_info_status}となっています。"
                         elif not reason_text:
                             current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
                             if current_info_cause: reason_text = f"{current_info_cause}のため、{current_info_status}となっています。"

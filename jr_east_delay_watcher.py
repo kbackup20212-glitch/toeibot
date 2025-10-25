@@ -138,7 +138,7 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     # (方向の日本語決定ロジック)
     direction_text = "上下線" # デフォルト
     if "odpt.RailDirection:Inbound" in directions_set and "odpt.RailDirection:Outbound" in directions_set: direction_text = "上下線"
-    elif "odpt.RailDirection:Northbound" in directions_set and "odpt.RailDirection:Southbound" in directions_set: direction_text = "南北両方向"
+    elif "odpt.RailDirection:Northbound" in directions_set and "odpt.RailDirection:Southbound" in directions_set: direction_text = "上下線"
     elif "odpt.RailDirection:InnerLoop" in directions_set and "odpt.RailDirection:OuterLoop" in directions_set: direction_text = "内外回り"
     else:
         found_directions = [RAIL_DIRECTION_NAMES.get(d, "不明") for d in directions_set]
@@ -220,9 +220,9 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                             direction_text = analysis_result["direction_text"]
                             max_delay = analysis_result["max_delay_minutes"]
                             message = (
-                                f"【{line_name_jp} 一部運転再開】\n"
+                                f"【{line_name_jp} 運転再開】\n"
                                 f"{STATION_DICT.get(tracking_info['last_location_id'].split('.')[-1], '不明な場所')}駅付近の列車は動き出しましたが、"
-                                f"まだ{range_text}の{direction_text}で遅延が継続しています。(最大{max_delay}分遅れ)"
+                                f"なお、現在も{range_text}の{direction_text}で遅延が継続しています。(最大{max_delay}分遅れ)"
                             )
                         else: # 分析結果が空＝完全復旧
                             message = (
