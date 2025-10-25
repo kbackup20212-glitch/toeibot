@@ -471,12 +471,12 @@ def check_jr_east_info() -> Optional[List[str]]:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
                             if linked_line_name:
-                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{current_info_status}となっています。"
+                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{current_info_status}しています。"
                             else:
-                                reason_text = f"{actual_location}での{cause}のため、{current_info_status}となっています。"
+                                reason_text = f"{actual_location}での{cause}のため、{current_info_status}しています。"
                         elif not reason_text:
                             current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                            if current_info_cause: reason_text = f"{current_info_cause}のため、{current_info_status}となっています。"
+                            if current_info_cause: reason_text = f"{current_info_cause}のため、{current_info_status}しています。"
                             else: reason_text = current_status_text.split('。')[0] + "。"
                         
                         final_message = f"{title}\n{reason_text}"
