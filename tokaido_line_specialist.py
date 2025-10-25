@@ -39,7 +39,7 @@ def get_tokaido_limited_express_nickname(train_number_str):
     elif (1 <= num <= 50) or (8094 <= num <= 8099):
         return "特急ひたち"
     elif (3020 <= num <= 3069) or (4020 <= num <= 4069) or (num in [8001, 8002]) or \
-       (8005 <= num <= 8014) or (8016 <= num <= 8040) or (8043 <= num <= 8065) or \
+       (8005 <= num <= 8014) or (8016 <= num <= 8040) or (8043 <= num <= 8066) or \
     (8070 <= num <= 8093) or (9020 <= num <= 9029) or (9032 <= num <= 9090):
         return "特急踊り子"     
     else:

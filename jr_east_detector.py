@@ -113,7 +113,7 @@ STATION_DICT = {
     #武蔵野線
     'FubashiHoten': '船橋法典', 'Ichikawaono': '市川大野', 'HigashiMatsudo': '東松戸',
     'ShinYahashira': '新八柱', 'ShimMatsudo': '新松戸', 'MinamiNagareyama': '南流山',
-    'Misato': '三郷', 'ShimMisato': '新三郷', 'Yoshikawa': '吉川', 'YoshikawaMinami': '吉川美南',
+    'Misato': '三郷', 'ShimMisato': '新三郷', 'Yoshikawa': '吉川', 'Yoshikawaminami': '吉川美南',
     'KoshigayaLakeTown': '越谷レイクタウン',
     'MinamiKoshigaya': '南越谷', 'HigashiKawaguchi': '東川口', 'HigashiUrawa': '東浦和',
     'MinamiUrawa': '南浦和', 'Musashiurawa': '武蔵浦和', 'Nishiurawa': '西浦和',
@@ -276,7 +276,10 @@ STATION_DICT = {
     'Omotesando': '表参道', 'Kasumigaseki': '霞ケ関', 'Otemachi': '大手町', 'Yushima': '湯島',  
 
     #成田線
-    'NaritaAirportTerminal1': '成田空港', 'Narita': '成田'
+    'NaritaAirportTerminal1': '成田空港', 'Narita': '成田',
+
+    #吾妻線
+    'Naganoharakusatsuguchi': '長野原草津口', 'Manzakazawaguchi': '万座鹿沢口', 'Omae': '大前',
 
 }
 
@@ -305,7 +308,7 @@ KEIHIN_TOHOKU_STATIONS = [
 JR_LINES_TO_MONITOR = [
     {
         "id": "odpt.Railway:JR-East.Yamanote",
-        "name": "山手線",
+        "name": "🟩山手線",
         "regular_trips": {
             ('odpt.RailDirection:InnerLoop', 'Ikebukuro'),
             ('odpt.RailDirection:InnerLoop', 'Osaki'),
@@ -316,7 +319,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # ▼▼▼ 2. 中央線快速を監視対象に追加 ▼▼▼
         "id": "odpt.Railway:JR-East.ChuoRapid",
-        "name": "中央快速線",
+        "name": "🟧中央快速線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Rapid', 'Tokyo'),
             ('odpt.TrainType:JR-East.Rapid', 'Mitaka'),
@@ -345,7 +348,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 他路線
         "id": "odpt.Railway:JR-East.ChuoSobuLocal",
-        "name": "中央総武線",
+        "name": "🟨中央総武線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Mitaka'),
             ('odpt.TrainType:JR-East.Local', 'Nakano'),
@@ -367,7 +370,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 京浜東北根岸線
         "id": "odpt.Railway:JR-East.KeihinTohokuNegishi",
-        "name": "京浜東北/根岸線",
+        "name": "🟦京浜東北線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
             ('odpt.TrainType:JR-East.Local', 'Hashimoto'),
@@ -392,7 +395,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 南武線
         "id": "odpt.Railway:JR-East.Nambu",
-        "name": "南武線",
+        "name": "🟨南武線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Tachikawa'),
             ('odpt.TrainType:JR-East.Local', 'Inaginaganuma'),
@@ -408,7 +411,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 横浜線
         "id": "odpt.Railway:JR-East.Yokohama",
-        "name": "横浜線",
+        "name": "🟩横浜線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
             ('odpt.TrainType:JR-East.Local', 'Hashimoto'),
@@ -425,7 +428,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 常磐快速線
         "id": "odpt.Railway:JR-East.JobanRapid",
-        "name": "常磐快速線",
+        "name": "🟩常磐快速線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Shinagawa'),
             ('odpt.TrainType:JR-East.Local', 'Tsuchiura'),
@@ -454,7 +457,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 常磐線取手以北
         "id": "odpt.Railway:JR-East.Joban",
-        "name": "常磐線",
+        "name": "🟦常磐線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Shinagawa'),
             ('odpt.TrainType:JR-East.Local', 'Ueno'),
@@ -480,7 +483,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 武蔵野線
         "id": "odpt.Railway:JR-East.Musashino",
-        "name": "武蔵野線",
+        "name": "🟧武蔵野線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Fuchuhommachi'),
             ('odpt.TrainType:JR-East.Local', 'HigashiTokorozawa'),
@@ -497,7 +500,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 中央線高尾以西
         "id": "odpt.Railway:JR-East.Chuo",
-        "name": "中央本線",
+        "name": "🟦中央本線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Tachikawa'),
             ('odpt.TrainType:JR-East.Local', 'Takao'),
@@ -522,7 +525,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 湘南新宿ライン
         "id": "odpt.Railway:JR-East.ShonanShinjuku",
-        "name": "湘南新宿ﾗｲﾝ",
+        "name": "🟧湘南新宿ﾗｲﾝ",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Odawara'),
             ('odpt.TrainType:JR-East.Local', 'Kozu'),
@@ -555,7 +558,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 高崎線
         "id": "odpt.Railway:JR-East.Takasaki",
-        "name": "高崎線",
+        "name": "🟧高崎線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Ito'),
             ('odpt.TrainType:JR-East.Local', 'Numazu'),
@@ -590,7 +593,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 宇都宮線
         "id": "odpt.Railway:JR-East.Utsunomiya",
-        "name": "宇都宮線",
+        "name": "🟧宇都宮線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Ito'),
             ('odpt.TrainType:JR-East.Local', 'Numazu'),
@@ -619,7 +622,7 @@ JR_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:JR-East.Itsukaichi",
-        "name": "五日市線",
+        "name": "🟧五日市線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'MusashiItsukaichi'),
             ('odpt.TrainType:JR-East.Local', 'Haijima'),
@@ -628,7 +631,7 @@ JR_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:JR-East.Ome",
-        "name": "青梅線",
+        "name": "🟧青梅線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'OkuTama'),
             ('odpt.TrainType:JR-East.Local', 'Ome'),
@@ -648,7 +651,7 @@ JR_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:JR-East.Tokaido",
-        "name": "東海道線",
+        "name": "🟧東海道線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Ito'),
             ('odpt.TrainType:JR-East.Local', 'Numazu'),
@@ -685,7 +688,7 @@ JR_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:JR-East.SobuRapid",
-        "name": "総武快速線",
+        "name": "🟦総武快速線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Rapid', 'Kimitsu'),
             ('odpt.TrainType:JR-East.Rapid', 'Sakura'),
@@ -712,7 +715,7 @@ JR_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:JR-East.Keiyo",
-        "name": "京葉線",
+        "name": "🟥京葉線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Tokyo'),
             ('odpt.TrainType:JR-East.Local', 'NishiFunabashi'),
@@ -739,7 +742,7 @@ JR_LINES_TO_MONITOR = [
     },
     {# 埼京線
         "id": "odpt.Railway:JR-East.SaikyoKawagoe",
-            "name": "埼京/川越線",
+            "name": "🟩埼京/川越線",
             "regular_trips": { 
             ('odpt.TrainType:JR-East.Local', 'Hachioji'),
             ('odpt.TrainType:JR-East.Local', 'Haijima'),
@@ -763,7 +766,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 相鉄直通線
         "id": "odpt.Railway:JR-East.SotetsuDirect",
-            "name": "相鉄直通線",
+            "name": "🟩相鉄直通線",
             "regular_trips": {
                 ('odpt.TrainType:JR-East.Local', 'Ebina'),
                 ('odpt.TrainType:JR-East.Local', 'Shinjuku'),
@@ -778,7 +781,7 @@ JR_LINES_TO_MONITOR = [
     },
     { # 川越線(川越～高麗川)
         "id": "odpt.Railway:JR-East.Kawagoe",
-        "name": "川越線",
+        "name": "⬜川越線",
         "regular_trips": {
             ('odpt.TrainType:JR-East.Local', 'Kawagoe'),  
             ('odpt.TrainType:JR-East.Local', 'Komagawa'),
@@ -788,7 +791,7 @@ JR_LINES_TO_MONITOR = [
     },
     { #常磐緩行線
         "id": "odpt.Railway:JR-East.JobanLocal",
-        "name": "常磐緩行線",
+        "name": "⬜常磐緩行線",
         "regular_trips": {
            ('odpt.TrainType:JR-East.Local', 'YoyogiUehara'),
            ('odpt.TrainType:JR-East.Local', 'Karakida'),
@@ -807,7 +810,7 @@ JR_LINES_TO_MONITOR = [
     },
     { #横須賀線
         "id": "odpt.Railway:JR-East.Yokosuka",
-        "name": "横須賀線",
+        "name": "🟦横須賀線",
         "regular_trips": {
            ('odpt.TrainType:JR-East.Local', 'NaritaAirportTerminal1'),
             ('odpt.TrainType:JR-East.Local', 'Naruto'),
