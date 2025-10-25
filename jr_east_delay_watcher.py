@@ -215,7 +215,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                             message = (
                                 f"【{line_name_jp} 運転再開】\n"
                                 f"{STATION_DICT.get(tracking_info['last_location_id'].split('.')[-1], '不明な場所')}駅付近の列車は動き出しましたが、"
-                                f"なお、{analysis_result['range_text']}の{analysis_result['direction_text']}で遅延が継続しています。(最大{analysis_result['max_delay_minutes']}分遅れ)"
+                                f"{analysis_result['range_text']}の{analysis_result['direction_text']}で遅延が継続しています。(最大{analysis_result['max_delay_minutes']}分遅れ)"
                             )
                         else: # 完全復旧
                             message = (
