@@ -319,27 +319,25 @@ def check_jr_east_info() -> Optional[List[str]]:
 
                 if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status_text:
                     linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
-                elif line_id == "odpt.Railway:JR-East.SaikyoKawagoe": # 埼京線
+                elif line_id == "odpt.Railway:JR-East.SaikyoKawagoe":
                     if "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
                     elif "湘南新宿ライン内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
                     elif "東海道線内での" in current_status_text or "横須賀線内での" in current_status_text:
                         forced_station = "大崎"
                     elif "線内での" in current_status_text:
                         skip_prediction = True
-                elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal": # 中央・総武線
+                elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal":
                     if "中央線快速電車での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ChuoRapid"
                     elif "総武快速線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SobuRapid"
                     elif "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
                 
-                # 連携先IDが決まっていたら、情報を取得
                 if linked_line_id_str:
                     linked_info = info_dict.get(linked_line_id_str, {})
                     linked_status = linked_info.get("odpt:trainInformationText", {}).get("ja")
                     if linked_status:
                         status_to_check = linked_status.strip()
                         linked_line_name = JR_LINE_PREDICTION_DATA.get(linked_line_id_str, {}).get("name", linked_line_id_str.split('.')[-1])
-                # ▲▲▲▲▲▲ 路線連携ロジックここまで ▲▲▲▲▲▲
-
+                
                 # ▼▼▼ 予測処理ブロック ▼▼▼
                 if "運転を見合わせています" in current_status_text and \
                    (current_info_status is None or (current_info_status != "運転再開見込" and "運転再開" not in current_info_status)):
@@ -368,7 +366,6 @@ def check_jr_east_info() -> Optional[List[str]]:
                     
                     if not station_list: skip_prediction = True
                     
-                    # --- 予測実行 ---
                     if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
                         try:
@@ -408,7 +405,6 @@ def check_jr_east_info() -> Optional[List[str]]:
                         except ValueError as e: pass
                         except Exception as find_err: pass
 
-                        # --- メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
                         running_sections = []
                         if hubs:
@@ -446,26 +442,22 @@ def check_jr_east_info() -> Optional[List[str]]:
                         notification_messages.append(final_message)
                         prediction_made = True
                 
-                # ▼▼▼ 通常の運行情報通知 ▼▼▼
+                # ▼▼▼ 通常の運行情報通知 (賢い要約版) ▼▼▼
                 if not prediction_made:
                     NORMAL_STATUS_KEYWORDS = ["平常", "正常", "お知らせ"]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
+                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
                         
-                        # ★★★ 翻訳辞書 ★★★
+                        # ★★★ 日本語翻訳辞書 ★★★
                         STATUS_PHRASES = {
                             "遅延": "遅延しています。",
                             "運転見合わせ": "運転を見合わせています。",
                             "運転再開": "運転を再開しました。",
-                            "運転再開見込": "運転再開見込が発表されています。", # 「しています」を削除
+                            "運転再開見込": "運転再開見込が発表されています。",
                         }
-                        
-                        line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                        
-                        # ★★★ ステータスを辞書から引く ★★★
-                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 見つからなければそのまま
-                        
-                        title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータス名のまま
-                        
+                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 辞書から引く
+                        title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータスのまま
+
                         resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
                         if resume_estimate_time_str:
                             try:
@@ -484,12 +476,12 @@ def check_jr_east_info() -> Optional[List[str]]:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
                             if linked_line_name:
-                                reason_text = f"{reason_text}{status_jp}"
+                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{status_jp}"
                             else:
-                                reason_text = f"{current_info_cause}のため、{status_jp}"
+                                reason_text = f"{actual_location}での{cause}のため、{status_jp}"
                         elif not reason_text:
                             current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                            if current_info_cause: reason_text = f"{current_info_cause}のため、{current_info_status}しています。"
+                            if current_info_cause: reason_text = f"{current_info_cause}のため、{status_jp}"
                             else: reason_text = current_status_text.split('。')[0] + "。"
                         
                         final_message = f"{title}\n{reason_text}"
