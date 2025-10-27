@@ -28,8 +28,8 @@ line_prediction_cooldown_tracker: Dict[str, float] = {} # ★ 予測通知専用
 JST = timezone(timedelta(hours=+9)) # ★ JST
 
 # --- 設定値 ---
-DELAY_THRESHOLD_SECONDS = 3 * 60
-INITIAL_NOTICE_THRESHOLD = 5
+DELAY_THRESHOLD_SECONDS = 0 * 60 #3を0に変更(0分遅れがカウント1)
+INITIAL_NOTICE_THRESHOLD = 1 #5を2に変更(カウント2で通知)
 ESCALATION_NOTICE_THRESHOLD = 10
 GROUP_ANALYSIS_THRESHOLD = 2
 GRACE_STATION_COUNT = 4
@@ -42,8 +42,8 @@ TARGET_DELAY_SECONDS = 20 * 60 # 20分
 # --- ★★★ 分析官（ヘルパー関数） ★★★ ---
 def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    指定された路線の全列車データから、集団遅延の「クラスター」を見つけて分析し、
-    「生データ」の辞書を返す。
+    集団遅延を分析し、「生データ」の辞書を返す。
+    (駅名の照合を徹底的にデバッグする)
     """
     global tracked_delayed_trains
     
@@ -51,10 +51,18 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     station_list = line_map_data.get("stations", [])
     if not station_list: 
         print(f"--- [DELAY ANALYZE] No station map for {line_name_jp}. Cannot analyze range.", flush=True)
-        return None # 駅マップがなければ分析不可
+        return None
+
+    # --- 鑑定ログ 1: 渡された駅リストの「生」の姿を表示 ---
+    print(f"\n--- [ANALYZE DEBUG @ {line_name_jp}] ---", flush=True)
+    print(f"  > Station List Provided (showing raw representation, first 5):", flush=True)
+    list_repr = [repr(s) for s in station_list[:5]] # 最初の5駅を生で表示
+    print(f"    - {list_repr}", flush=True)
 
     # 1. 全列車の位置と遅延を駅インデックスにマッピング
     station_delay_map: Dict[int, List[Dict[str, Any]]] = {}
+    found_any_in_list = False # 1つでもリスト照合に成功したか
+    
     for train in all_trains_on_line:
         location_id = train.get("odpt:toStation") or train.get("odpt:fromStation")
         if not location_id: continue
@@ -62,14 +70,24 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
         station_en = location_id.split('.')[-1]
         station_jp = STATION_DICT.get(station_en, station_en)
         
-        if station_jp in station_list:
+        # --- 鑑定ログ 2: 抽出した駅名と、リスト照合の結果を表示 ---
+        station_jp_raw = repr(station_jp) # ★ 抽出した駅名を生で表示
+        is_in_list = station_jp in station_list
+        if is_in_list:
+             found_any_in_list = True
+        print(f"  > Checking train {train.get('odpt:trainNumber')}: Extracted name (raw)={station_jp_raw}. In list? -> {is_in_list}", flush=True)
+        
+        if is_in_list:
             try:
                 index = station_list.index(station_jp)
                 if index not in station_delay_map:
                     station_delay_map[index] = []
                 station_delay_map[index].append(train)
             except ValueError:
-                pass # 駅リストにない駅は無視
+                pass # (is_in_list が True なら、ここは通らないはず)
+
+    if not found_any_in_list:
+        print(f"  > !!! CRITICAL: No trains found in the station_list. Check for hidden characters in the list or station names.", flush=True)
 
     # 2. 遅延クラスター（小隊）を見つける (猶予カウント方式)
     clusters: List[Dict[str, Any]] = []
