@@ -51,7 +51,7 @@ STATION_DICT = {
     'Kawaguchiko': '河口湖',
 
     #中央本線
-    'Hatsukari' : '初狩', 'Sasago': '笹子', 'KaiYamato': '甲斐大和', 'KatsunumaBudokyo': '勝沼ぶどう郷',
+    'Hatsukari' : '初狩', 'Sasago': '笹子', 'KaiYamato': '甲斐大和', 'Katsunumabudokyo': '勝沼ぶどう郷',
     'Enzan': '塩山', 'HigashiYamanashi': '東山梨', 'Yamanashishi': '山梨市', 'Kasugaicho': '春日居町',
     'IsaawaOnsen': '石和温泉', 'Sakaori': '酒折', 'Kofu': '甲府', 'Ryuo': '竜王', 'Nirasaki': '韮崎',  
     'Shinpu': '新府', 'Anayama': '穴山', 'Hinoharu': '日野春', 'Nagasaka': '長坂', 'Kobuchizawa': '小淵沢',

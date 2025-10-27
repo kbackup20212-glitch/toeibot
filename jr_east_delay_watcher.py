@@ -254,6 +254,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                             if current_time - last_notification_time > COOLDOWN_SECONDS:
                                 line_train_list = all_trains_by_line.get(line_id, [])
                                 analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
+                                message_body = f"{line_name_jp}で何らかのトラブルが発生した可能性があります。"
                                 if analysis_result:
                                     # ★★★ 司令塔から公式情報を使って「原因」を特定 ★★★
                                     status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
@@ -318,6 +319,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                          else: # 公式が「遅延」などの場合のみ、[継続]通知を出す
                              line_train_list = all_trains_by_line.get(line_id, [])
                              analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
+                             message_body = f"{line_name_jp}でのトラブル対応が長引いている可能性があります。"
                              if analysis_result:
                                 line_info = official_info.get(line_id, {})
                                 # ★★★ 継続通知でも公式情報から「原因」を特定 ★★★

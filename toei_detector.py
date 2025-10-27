@@ -16,7 +16,7 @@ STATION_DICT = {
     'Hibiya': '日比谷', 'Otemachi': '大手町', 'Jimbocho': '神保町', 'Suidobashi': '水道橋',
     'Kasuga': '春日', 'Hakusan': '白山', 'Sengoku': '千石', 'Sugamo': '巣鴨',
     'NishiSugamo': '西巣鴨', 'ShinItabashi': '新板橋', 'ItabashiKuyakushomae': '板橋区役所前',
-    'ItabashiHoncho': '板橋本町', 'Motosunuma': '本蓮沼', 'ShimuraSakaue': '志村坂上',
+    'Itabashihoncho': '板橋本町', 'Motosunuma': '本蓮沼', 'ShimuraSakaue': '志村坂上',
     'ShimuraSanchome': '志村三丁目', 'Hasune': '蓮根', 'Nishidai': '西台',
     'Takashimadaira': '高島平', 'NishiTakashimadaira': '西高島平',
 
