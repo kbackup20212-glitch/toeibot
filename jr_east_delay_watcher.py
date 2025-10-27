@@ -263,7 +263,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                     tracking_info["last_seen_time"] = current_time
                     if current_direction: tracking_info["direction"] = current_direction
                     count = tracking_info["consecutive_increase_count"]
-                    
+                    print(f"--- [DELAY WATCH] Train {train_number}: Count {count} at {current_location_id}", flush=True)
                     line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
 
                     # --- 最初の通知判定 (カウント5) ---
