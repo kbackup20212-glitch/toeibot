@@ -374,6 +374,12 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
         for train_num in trains_to_remove:
             del tracked_delayed_trains[train_num]
             print(f"--- [DELAY WATCH] Train {train_num}: Removing track (timeout).", flush=True)
+        
+        print(f"--- [MEMORY CHECK 2 (END)] ---", flush=True)
+        if not tracked_delayed_trains:
+            print("  > Memory (tracked_delayed_trains) is EMPTY.", flush=True)
+        else:
+            print(f"  > Memory (tracked_delayed_trains) NOW CONTAINS: {tracked_delayed_trains.keys()}", flush=True)
 
         return notification_messages
 
