@@ -91,6 +91,18 @@ JR_LINE_PREDICTION_DATA = {
             '上野', '宇都宮', '黒磯'
         }        
     },
+    "odpt.Railway:JR-East.Tokaido": {
+        "name": "🟧東海道線",
+        "stations": [
+            '東京', '有楽町', '新橋', '浜松町', '田町', '高輪ゲートウェイ', '品川', '大井町', '大森', 
+            '蒲田', '川崎', '鶴見', '新子安', '東神奈川', '横浜', '保土ヶ谷', '東戸塚', '戸塚', '大船', 
+            '藤沢', '辻堂', '茅ケ崎', '平塚', '大磯', '二宮', '国府津', '鴨宮', '小田原', '早川', 
+            '根府川', '真鶴', '湯河原', '熱海'
+        ],
+        "turning_stations": {
+            '東京','品川','大船','藤沢','茅ケ崎','平塚','国府津','小田原','熱海'
+        }
+    },
     "odpt.Railway:JR-East.KeihinTohokuNegishi": {
         "name": "🟦京浜東北線",
         "stations": [
@@ -117,6 +129,17 @@ JR_LINE_PREDICTION_DATA = {
         "name": "🟧五日市線",
         "stations":['武蔵五日市','武蔵増戸','武蔵引田','秋川','東秋留','熊川','拝島','立川方面'],
         "turning_stations":{'武蔵五日市','武蔵引田','拝島'}
+    },
+        "odpt.Railway:JR-East.Ome": {
+        "name": "🟧青梅線",
+        "stations":['奥多摩','白丸','鳩ノ巣','古里','川井','御嶽','沢井','軍畑','二俣尾','石神前',
+                    '日向和田','宮ノ平','青梅','東青梅','河辺','小作','羽村','福生','牛浜','拝島',
+                    '昭島','中神','東中神','西立川','立川'],
+        "turning_stations":{'奥多摩','御嶽','青梅','河辺','拝島','立川'
+                            },
+        "hubs": { # ★★★ 新しい「ハブ空港」の定義 ★★★
+            '奥多摩','青梅','立川'
+        }
     },
         "odpt.Railway:JR-East.Sotobo": {
         "name": "🟥外房線",
@@ -191,6 +214,11 @@ JR_LINE_PREDICTION_DATA = {
                             '群馬藤岡','北藤岡','高崎'},
         "hubs": {'高麗川'}
     },
+    "odpt.Railway:JR-East.Kawagoe": {
+        "name": "⬜川越線",
+        "stations":['川越','西川越','的場','笠幡','武蔵高萩','高麗川','八高線方面'],
+        "turning_stations":{'川越','高麗川'}
+    },
     "odpt.Railway:JR-East.Keiyo": {
         "name": "🟥京葉線",
         "stations":['東京', '八丁堀', '越中島', '潮見', '新木場', '葛西臨海公園', '舞浜', '新浦安', 
@@ -246,8 +274,15 @@ JR_LINE_PREDICTION_DATA = {
                     '戸塚','大船','北鎌倉','鎌倉','逗子','東逗子','田浦','横須賀','衣笠','久里浜'],
         "turning_stations":{'東京','品川','横浜','大船','逗子','横須賀','久里浜'},
     },
+    "odpt.Railway:JR-East.Yamanote": {
+        "name": "🟩山手線",
+        "stations":['大崎', '五反田', '目黒', '恵比寿', '渋谷', '原宿', '代々木', '新宿', 
+                    '新大久保', '高田馬場', '目白', '池袋', '大塚', '巣鴨', '駒込', '田端', 
+                    '西日暮里', '日暮里', '鶯谷', '上野', '御徒町', '秋葉原', '神田', '東京', 
+                    '有楽町', '新橋', '浜松町', '田町', '高輪ゲートウェイ', '品川'],
+        "turning_stations":{},
+    },
 
-    "odpt.Railway:JR-East.Yamanote": {"name": "🟩山手線"},
     "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "🟦成田線"},
     "odpt.Railway:JR-East.Echigo": {"name": "🟩越後線"},
     }
@@ -317,8 +352,10 @@ def check_jr_east_info() -> Optional[List[str]]:
                 forced_station = None
                 linked_line_id_str: Optional[str] = None
 
-                if line_id == "odpt.Railway:JR-East.ChuoRapid" and "中央・総武各駅停車での" in current_status_text:
-                    linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                if line_id == "odpt.Railway:JR-East.ChuoRapid":
+                    if "中央・総武各駅停車での" in current_status_text:
+                        linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                
                 elif line_id == "odpt.Railway:JR-East.SaikyoKawagoe":
                     if "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
                     elif "湘南新宿ライン内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
@@ -326,10 +363,63 @@ def check_jr_east_info() -> Optional[List[str]]:
                         forced_station = "大崎"
                     elif "線内での" in current_status_text:
                         skip_prediction = True
+                
                 elif line_id == "odpt.Railway:JR-East.ChuoSobuLocal":
                     if "中央線快速電車での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ChuoRapid"
                     elif "総武快速線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SobuRapid"
                     elif "山手線内での" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
+
+                elif line_id == "odpt.Railway:JR-East.Tokaido":
+                    if "京浜東北線" in current_status_text: # 「内での」が付くか不明なため、路線名だけで検知
+                        linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+                    elif "横須賀線" in current_status_text:
+                        linked_line_id_str = "odpt.Railway:JR-East.Yokosuka"
+
+                elif line_id == "odpt.Railway:JR-East.KeihinTohokuNegishi":
+                    if "高崎線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Takasaki"
+                    elif "宇都宮線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Utsunomiya"
+                    elif "山手線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
+                    elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
+                    elif "横須賀線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yokosuka"
+
+                elif line_id == "odpt.Railway:JR-East.Takasaki":
+                    if "宇都宮線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Utsunomiya"
+                    elif "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+                    elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
+
+                elif line_id == "odpt.Railway:JR-East.Utsunomiya":
+                    if "高崎線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Takasaki"
+                    elif "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+                    elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
+
+                elif line_id == "odpt.Railway:JR-East.ShonanShinjuku":
+                    if "宇都宮線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Utsunomiya"
+                    elif "高崎線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Takasaki"
+                    elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
+                    elif "横須賀線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yokosuka"
+                    elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
+
+                elif line_id == "odpt.Railway:JR-East.SobuRapid":
+                    if "中央・総武各駅停車" in current_status_text:
+                        linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                elif line_id == "odpt.Railway:JR-East.Joban": # 常磐線(本線)
+                    if "常磐線各駅停車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanLocal"
+                    elif "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
+                
+                elif line_id == "odpt.Railway:JR-East.JobanRapid": # 常磐線快速
+                    if "常磐線各駅停車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanLocal"
+                    elif "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Joban"
+                
+                elif line_id == "odpt.Railway:JR-East.JobanLocal": # 常磐線各駅停車
+                    if "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
+                    elif "常磐線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Joban"
+
+                elif line_id == "odpt.Railway:JR-East.Yamanote": # 山手線
+                    if "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+                    elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
+                    elif "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
+                    elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
+                    elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
                 
                 if linked_line_id_str:
                     linked_info = info_dict.get(linked_line_id_str, {})
@@ -342,41 +432,55 @@ def check_jr_east_info() -> Optional[List[str]]:
                 if "運転を見合わせています" in current_status_text and \
                    (current_info_status is None or (current_info_status != "運転再開見込" and "運転再開" not in current_info_status)):
                     
+                    # --- 1. カルテと変数を準備 ---
                     line_data = JR_LINE_PREDICTION_DATA[line_id]
                     line_name_jp = line_data.get("name", line_id)
                     station_list: List[str] = []
                     turning_stations = line_data.get("turning_stations", set())
                     hubs = line_data.get("hubs", set())
-                    is_branch_line = False
+                    is_branch_line = False # (丸ノ内線用、JRでは使わないが一応)
 
+                    # --- 2. 路線ごとの駅リストを特定 ---
                     if line_id == "odpt.Railway:JR-East.Narita" or line_id == "odpt.Railway:JR-East.NaritaAbikoBranch":
                         match_between = re.search(r'([^\s～]+?)駅～([^\s～]+?)駅', status_to_check)
                         match_at = re.search(r'([^\s]+?)駅で', status_to_check)
                         stop_station = ""
                         if match_between: stop_station = match_between.group(1).strip()
                         elif match_at: stop_station = match_at.group(1).strip()
+                        
                         if stop_station:
-                            if stop_station in line_data.get("stations_main", []): station_list = line_data["stations_main"]
-                            elif stop_station in line_data.get("stations_abiko", []): station_list = line_data["stations_abiko"]
-                            elif stop_station in line_data.get("stations_airport", []): skip_prediction = True
-                            else: skip_prediction = True
-                        else: skip_prediction = True
-                    else:
+                            if stop_station in line_data.get("stations_main", []): 
+                                station_list = line_data["stations_main"]
+                            elif stop_station in line_data.get("stations_abiko", []): 
+                                station_list = line_data["stations_abiko"]
+                            elif stop_station in line_data.get("stations_airport", []): 
+                                skip_prediction = True
+                            else: 
+                                skip_prediction = True
+                        else: 
+                            skip_prediction = True
+                    else: # 中央線、埼京線、高崎線など
                         station_list = line_data.get("stations", [])
                     
-                    if not station_list: skip_prediction = True
+                    if not station_list: 
+                        skip_prediction = True
                     
+                    # --- 3. 予測実行 ---
                     if not skip_prediction:
                         turn_back_1, turn_back_2 = None, None
                         try:
-                            if forced_station:
+                            # --- 3a. 事故現場の特定 (「みなし処理」を優先) ---
+                            if forced_station: # 埼京線の「大崎」みなし処理
                                 if forced_station in station_list:
                                     idx = station_list.index(forced_station)
                                     turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                     turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
                             else:
+                                # --- 3b. 正規表現で駅名を抽出 ---
+                                # 「駅構内」も許容するパターン
                                 match_between = re.search(r'([^\s～、]+?)\s*駅?\s*～\s*([^\s、。～]+?)\s*駅間', status_to_check)
-                                match_at = re.search(r'([^\s、。～]+?)\s*駅\s*で', status_to_check)
+                                match_at = re.search(r'([^\s、。～]+?)\s*駅(?:構内)?\s*で', status_to_check) 
+                                
                                 station_to_compare = ""
                                 station1, station2, station = None, None, None
 
@@ -389,6 +493,7 @@ def check_jr_east_info() -> Optional[List[str]]:
                                     station = re.split(r'[、\s]', station_raw)[-1].strip()
                                     station_to_compare = station
 
+                                # --- 3c. 折り返し駅の計算 ---
                                 if station_to_compare and station_to_compare in station_list:
                                     if match_between:
                                         idx1, idx2 = station_list.index(station1), station_list.index(station2)
@@ -402,23 +507,32 @@ def check_jr_east_info() -> Optional[List[str]]:
                                         idx = station_list.index(station)
                                         turn_back_1 = _find_nearest_turning_station(station_list, turning_stations, idx - 1, -1)
                                         turn_back_2 = _find_nearest_turning_station(station_list, turning_stations, idx + 1, 1)
-                        except ValueError as e: pass
-                        except Exception as find_err: pass
+                        
+                        except ValueError as e: 
+                            print(f"--- [JR INFO] WARNING: Failed to find index. Station: '{station_to_compare}'. Error: {e}", flush=True)
+                            pass # 駅名がリストになくても無視
+                        except Exception as find_err: 
+                             import traceback
+                             print(f"--- [JR INFO] WARNING: Error during prediction logic: {find_err}", flush=True)
+                             traceback.print_exc()
+                             pass # 予期せぬエラーでも無視
 
+                        # --- 4. メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
                         running_sections = []
-                        if hubs:
+                        if hubs: # ハブ方式 (宇都宮線, 成田線)
                             if turn_back_1:
                                 hub_1 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_1), -1)
                                 if hub_1 and hub_1 != turn_back_1: running_sections.append(f"・{hub_1}～{turn_back_1}")
                             if turn_back_2:
                                 hub_2 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_2), 1)
                                 if hub_2 and hub_2 != turn_back_2: running_sections.append(f"・{turn_back_2}～{hub_2}")
-                        else:
+                        else: # 始点終点方式 (中央線, 埼京線, 高崎線)
                             line_start, line_end = station_list[0], station_list[-1]
                             if turn_back_1 and turn_back_1 != line_start: running_sections.append(f"・{line_start}～{turn_back_1}")
                             if turn_back_2 and turn_back_2 != line_end: running_sections.append(f"・{turn_back_2}～{line_end}")
                         
+                        # --- 4b. 原因テキスト作成 ---
                         reason_text = ""
                         reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
                         if reason_match:
@@ -434,11 +548,16 @@ def check_jr_east_info() -> Optional[List[str]]:
                                 reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
                         
                         disclaimer = "\n状況により折返し運転が実施されない場合があります。"
+                        
+                        # --- 4c. 最終組み立て ---
                         final_message = message_title
-                        if running_sections: final_message += f"\n" + "\n".join(running_sections)
-                        else: final_message += "\n(運転区間不明)"
+                        if running_sections: 
+                            final_message += f"\n" + "\n".join(running_sections)
+                        else: 
+                            final_message += "\n(運転区間不明)"
                         final_message += reason_text
                         final_message += disclaimer
+                        
                         notification_messages.append(final_message)
                         prediction_made = True
                 
