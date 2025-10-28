@@ -282,9 +282,18 @@ JR_LINE_PREDICTION_DATA = {
                     '有楽町', '新橋', '浜松町', '田町', '高輪ゲートウェイ', '品川'],
         "turning_stations":{},
     },
+    "odpt.Railway:JR-East.Echigo": {
+        "name": "🟩越後線",
+        "stations":['柏崎', '東柏崎', '西中通', '荒浜', '刈羽', '西山', '礼拝', '石地', 
+                    '小木ノ城', '出雲崎', '妙法寺', '小島谷', '桐原', '寺泊', '分水', '粟生津', 
+                    '南吉田', '吉田', '北吉田', '岩室', '巻', '越後曽根', '越後赤塚', '内野西が丘', 
+                    '内野', '新潟大学前', '寺尾', '小針', '青山', '関屋', '白山', '上所', '新潟'],
+        "turning_stations":{'柏崎', '出雲崎', '寺泊', '吉田', '巻', '越後曽根', '越後赤塚', '内野'
+                            '関屋', '白山', '新潟'},
+        "hubs": {'柏崎','吉田','新潟'}
+    },
 
-    "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "🟦成田線"},
-    "odpt.Railway:JR-East.Echigo": {"name": "🟩越後線"},
+    "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "🟦成田線(空港支線)"},
     }
 
 # ▼▼▼ 2つのグローバル変数の名前を変更 ▼▼▼
@@ -381,16 +390,21 @@ def check_jr_east_info() -> Optional[List[str]]:
                     elif "山手線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yamanote"
                     elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
                     elif "横須賀線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yokosuka"
+                    elif "横浜線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yokohama"
 
                 elif line_id == "odpt.Railway:JR-East.Takasaki":
                     if "宇都宮線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Utsunomiya"
                     elif "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
                     elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
-
+                    elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
+                    elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
+                    
                 elif line_id == "odpt.Railway:JR-East.Utsunomiya":
                     if "高崎線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Takasaki"
                     elif "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
                     elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
+                    elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
+                    elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
 
                 elif line_id == "odpt.Railway:JR-East.ShonanShinjuku":
                     if "宇都宮線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Utsunomiya"
@@ -400,8 +414,10 @@ def check_jr_east_info() -> Optional[List[str]]:
                     elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
 
                 elif line_id == "odpt.Railway:JR-East.SobuRapid":
-                    if "中央・総武各駅停車" in current_status_text:
-                        linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                    if "中央・総武各駅停車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ChuoSobuLocal"
+                    elif "横須賀線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Yokosuka"
+                    elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
+
                 elif line_id == "odpt.Railway:JR-East.Joban": # 常磐線(本線)
                     if "常磐線各駅停車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanLocal"
                     elif "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
@@ -414,13 +430,18 @@ def check_jr_east_info() -> Optional[List[str]]:
                     if "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
                     elif "常磐線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Joban"
 
+                elif line_id == "odpt.Railway:JR-East.Yokohama": # 横浜線
+                    if "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+                    elif "根岸線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
+
+
                 elif line_id == "odpt.Railway:JR-East.Yamanote": # 山手線
                     if "京浜東北線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.KeihinTohokuNegishi"
                     elif "東海道線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.Tokaido"
                     elif "常磐線快速電車" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.JobanRapid"
                     elif "湘南新宿ライン" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.ShonanShinjuku"
                     elif "埼京線" in current_status_text: linked_line_id_str = "odpt.Railway:JR-East.SaikyoKawagoe"
-                
+                                
                 if linked_line_id_str:
                     linked_info = info_dict.get(linked_line_id_str, {})
                     linked_status = linked_info.get("odpt:trainInformationText", {}).get("ja")

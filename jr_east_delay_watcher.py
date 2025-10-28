@@ -50,12 +50,18 @@ PREDICTION_TIME_MAP = {
     "シカと衝突": 20,
     "異音の確認": 20,
     "動物と衝突": 20,
+    "信号確認": 20,
+    "信号装置点検": 20,
     "踏切安全確認": 15,
+    "線路に人立入": 15,
     "お客さま救護": 15,
+    "ホーム上確認": 15,
+    "車内点検": 15,
+    "車両点検": 15,
+    "濃霧": 10,
+    "荷物挟まり": 10,
     "ドア点検": 10,
-    "お客さまトラブル": 10,
-    
-    # (将来的にはここに「ドア点検」などを追加できるね)
+    "車内トラブル": 10,
 }
 
 # --- ★★★ 分析官（ヘルパー関数） ★★★ ---
@@ -333,7 +339,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                         if official_cause_text: cause_text = official_cause_text
                                     
                                     message_body = (
-                                        f"{line_name_jp}は、{cause_text}の影響で、"
+                                        f"{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
