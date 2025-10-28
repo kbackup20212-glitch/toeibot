@@ -61,8 +61,8 @@ PREDICTION_TIME_MAP = {
 # --- ★★★ 分析官（ヘルパー関数） ★★★ ---
 def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    指定された路線の全列車データから、集団遅延の「クラスター」を見つけて分析し、
-    「生データ」の辞書を返す。
+    集団遅延を分析し、「生データ」の辞書を返す。
+    「主犯」の列車番号も特定する。
     """
     global tracked_delayed_trains
     
@@ -127,24 +127,26 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     if not clusters:
         return None
 
-    # 3. 最大のクラスターを分析
+    # 3. 最大クラスターの分析 (★ 主犯特定ロジックを追加)
     main_cluster = max(clusters, key=lambda c: len(c["trains"]))
-
     directions_set: set = set()
     max_delay: int = 0
     main_culprit_count: int = -1
+    main_culprit_train_number: Optional[str] = None # ★ 主犯の列車番号
     cause_location_id: Optional[str] = None
+    suspicious_train_numbers: List[str] = [] # ★ 集団全員の列車番号
 
     for train in main_cluster["trains"]:
-        if train.get("odpt:railDirection"):
-            directions_set.add(train["odpt:railDirection"])
-        if train.get("odpt:delay", 0) > max_delay:
-            max_delay = train.get("odpt:delay", 0)
+        if train.get("odpt:railDirection"): directions_set.add(train["odpt:railDirection"])
+        if train.get("odpt:delay", 0) > max_delay: max_delay = train.get("odpt:delay", 0)
         train_number = train.get("odpt:trainNumber")
         if train_number in tracked_delayed_trains:
             count = tracked_delayed_trains[train_number]["consecutive_increase_count"]
+            if count >= GROUP_ANALYSIS_THRESHOLD:
+                 suspicious_train_numbers.append(train_number) # ★ 集団のメンバーとして追加
             if count > main_culprit_count:
                 main_culprit_count = count
+                main_culprit_train_number = train_number # ★ 主犯を特定
                 cause_location_id = train.get("odpt:toStation") or train.get("odpt:fromStation")
 
     # 4. 方向の日本語決定
@@ -168,13 +170,14 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
         cause_station_en = cause_location_id.split('.')[-1]
         cause_station_jp = STATION_DICT.get(cause_station_en, cause_station_en) + "駅付近"
 
-    # 6. 分析結果を辞書で返す
+    # 6. 分析結果を辞書で返す (★ 返す中身を変更)
     return {
         "range_text": range_text,
         "direction_text": direction_text,
         "max_delay_minutes": int(max_delay / 60),
         "cause_station_jp": cause_station_jp,
-        "suspicious_trains": main_cluster["trains"] # 旗を立てるために使う
+        "main_culprit_train_number": main_culprit_train_number, # ★ 主犯の番号
+        "suspicious_train_numbers": suspicious_train_numbers # ★ 集団全員の番号
     }
 
 # --- ★★★ 予測時刻計算（ヘルパー関数） ★★★ ---
@@ -221,6 +224,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
     current_time = time.time()
     trains_found_this_cycle: set = set()
 
+    # 1. 列車在線データを取得
     try:
         params = {"odpt:operator": "odpt.Operator:JR-East", "acl:consumerKey": API_TOKEN}
         response = requests.get(API_ENDPOINT, params=params, timeout=45)
@@ -228,6 +232,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
         train_data = response.json()
         if not isinstance(train_data, list): return None
 
+        # 2. 路線ごとの全列車リストと、最大遅延を集計
         all_trains_by_line: Dict[str, List[Dict[str, Any]]] = {}
         max_delay_by_line: Dict[str, int] = {}
         for train in train_data:
@@ -237,6 +242,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 all_trains_by_line[line_id] = []
             all_trains_by_line[line_id].append(train)
 
+        # 4. 既存の「不審遅延」ロジック (追跡リスト更新)
         for train in train_data:
             train_number: Optional[str] = train.get("odpt:trainNumber")
             current_delay: int = train.get("odpt:delay", 0)
@@ -252,35 +258,33 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 moved = current_location_id != tracking_info["last_location_id"]
                 recovered = current_delay < DELAY_THRESHOLD_SECONDS
 
-                # ▼▼▼ リセット処理 (再開通知) ▼▼▼
+                # ▼▼▼ リセット処理 (「主犯」が動いた時だけ通知) ▼▼▼
                 if moved or recovered:
-                    # もし「最初の通知」が送られていて、「路線全体の再開」がまだ通知されていなければ
-                    if tracking_info.get("notified_initial", False) and not line_resumption_notified.get(line_id, False):
-                        line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1]) # (各ファイルで辞書名は違うはず)
+                    # ★ もし動いたのが「主犯」で、かつ「路線再開」がまだ未通知なら
+                    if tracking_info.get("is_main_culprit", False) and not line_resumption_notified.get(line_id, False):
+                        line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
                         line_train_list = all_trains_by_line.get(line_id, [])
                         analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                         
                         range_text = STATION_DICT.get(tracking_info["last_location_id"].split('.')[-1], "不明な場所")
-                        max_delay = int(tracking_info["last_delay"] / 60)
                         
-                        if analysis_result: # まだ一部が遅れている場合
+                        if analysis_result: # まだ一部が遅れている (別の集団が残ってる)
                             message = (
                                 f"【{line_name_jp} 一部列車運転再開】\n"
                                 f"{STATION_DICT.get(tracking_info['last_location_id'].split('.')[-1], '不明な場所')}駅付近の列車は動き出しましたが、"
                                 f"現在も{analysis_result['range_text']}の{analysis_result['direction_text']}で停止中の列車があります。(最大{analysis_result['max_delay_minutes']}分遅れ)"
                             )
-                            notification_messages.append(message)
-                            # ★★★ バグ修正：ここでは「再開済み」フラグを立てない！ ★★★
-                            
                         else: # 完全復旧
                             message = (
                                 f"【{line_name_jp} 運転再開】\n"
                                 f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
                             )
-                            notification_messages.append(message)
-                            # ★★★ 完全復旧の時だけフラグを立てる ★★★
-                            line_resumption_notified[line_id] = True
+                        
+                        notification_messages.append(message)
+                        line_resumption_notified[line_id] = True
                     
+                    if moved: print(f"--- [DELAY WATCH] Train {train_number}: Reset (moved).", flush=True)
+                    if recovered: print(f"--- [DELAY WATCH] Train {train_number}: Reset (delay recovered).", flush=True)
                     del tracked_delayed_trains[train_number]
                 
                 # ▼▼▼ 遅延増加処理 ▼▼▼
@@ -291,25 +295,21 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                     if current_direction: tracking_info["direction"] = current_direction
                     count = tracking_info["consecutive_increase_count"]
                     print(f"--- [DELAY WATCH] Train {train_number}: Count {count} at {current_location_id}", flush=True)
+                    
                     line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
                     location_name_en = current_location_id.split('.')[-1]
                     location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
 
                     # --- 最初の通知判定 (カウント5) ---
                     if count >= INITIAL_NOTICE_THRESHOLD and not tracking_info.get("notified_initial", False):
-                        tracking_info["notified_initial"] = True # ★ 1. まず、無条件で「旗」を立てる
-                        
                         line_info = official_info.get(line_id, {})
                         current_official_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
                         
-                        # ★ 2. 運転見合わせスキップ
                         if current_official_status == "運転見合わせ":
                             print(f"--- [DELAY WATCH] Train {train_number}: Skipping initial notice (Official status is '運転見合わせ').", flush=True)
-                        
-                        else: # 公式が「運転見合わせ」じゃなかったら
-                            
-                            # ★ 3. エリアクールダウン
-                            # (location_name_jp はこのブロックの冒頭で定義済みのはず)
+                            tracking_info["notified_initial"] = True # ★公式発表済みなら、旗1だけ立てる
+                        # ★ 3. エリアクールダウン
+                        else: 
                             cooldown_key = line_id # デフォルト
                             if line_id == "odpt.Railway:JR-East.Chuo": # 中央本線ID
                                 cooldown_key = "JR-East.Chuo.Takao" if location_name_jp == "高尾" else "JR-East.Chuo.Other"
@@ -346,31 +346,31 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                     notification_messages.append(message)
                                     line_cooldown_tracker[line_id] = current_time
                                     line_resumption_notified[line_id] = False
-                                    for train_info in analysis_result["suspicious_trains"]:
-                                         if train_info.get("odpt:trainNumber") in tracked_delayed_trains:
-                                             tracked_delayed_trains[train_info["odpt:trainNumber"]]["notified_initial"] = True
-                                    print(f"--- [DELAY WATCH] !!! GROUP NOTICE SENT for line {line_name_jp} !!!", flush=True)
+                                    # ★★★ 旗1（集団）と 旗2（主犯）を立てる ★★★
+                                    main_culprit_num = analysis_result["main_culprit_train_number"]
+                                    for train_num in analysis_result["suspicious_train_numbers"]:
+                                        if train_num in tracked_delayed_trains:
+                                            tracked_delayed_trains[train_num]["notified_initial"] = True # 旗1
+                                            if train_num == main_culprit_num:
+                                                tracked_delayed_trains[train_num]["is_main_culprit"] = True # 旗2
+                                                print(f"--- [DELAY WATCH] Train {train_num} is now MAIN CULPRIT.", flush=True)
+
+                                    print(f"--- [DELAY WATCH] !!! GROUP NOTICE SENT for {cooldown_key} !!!", flush=True)
                             else:
-                                print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but line {line_name_jp} in cooldown.", flush=True)
+                                print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but area {cooldown_key} is in cooldown.", flush=True)
+                                # ★ クールダウンでも旗は立てない (旗立ては分析官がやる)
                     
                     # --- 再通知 (カウント10) ---
-                    if count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
-                         cooldown_key = line_id # デフォルト
-                         if line_id == "odpt.Railway:JR-East.Chuo":
-                             cooldown_key = "JR-East.Chuo.Takao" if location_name_jp == "高尾" else "JR-East.Chuo.Other"
-                         # 公式情報を取得
+                    # ★★★「主犯」だけが継続通知をトリガーする ★★★
+                    if count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("is_main_culprit", False) and not tracking_info.get("notified_escalated", False):
                          line_info = official_info.get(line_id, {})
                          current_official_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
 
-                         # もし公式が「運転見合わせ」と発表していたら、[継続]通知はスキップ
                          if current_official_status == "運転見合わせ":
-                             print(f"--- [DELAY WATCH] Train {train_number}: Skipping escalation notice (Official status is already '運転見合わせ').", flush=True)
-                             tracking_info["notified_escalated"] = True # フラグだけ立てる
-                         
-                         else: # 公式が「遅延」などの場合のみ、[継続]通知を出す
+                             tracking_info["notified_escalated"] = True
+                         else:
                              line_train_list = all_trains_by_line.get(line_id, [])
                              analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
-                             
                              if analysis_result:
                                 # --- 原因を特定 ---
                                  status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
@@ -397,12 +397,14 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                  message = f"【{line_name_jp} 運転見合わせ[継続]】\n{message_body}{prediction_text}" # ★合体
                                  
                                  notification_messages.append(message)
-                                 for train_info in analysis_result["suspicious_trains"]:
-                                     if train_info.get("odpt:trainNumber") in tracked_delayed_trains:
-                                        tracked_delayed_trains[train_info["odpt:trainNumber"]]["notified_escalated"] = True
-                                 print(f"--- [DELAY WATCH] !!! ESCALATION NOTICE SENT for line {line_name_jp} !!!", flush=True)
+                                 
+                                 # ★ 主犯だけに「再通知済み」の旗を立てる
+                                 tracking_info["notified_escalated"] = True
+                                 print(f"--- [DELAY WATCH] !!! ESCALATION NOTICE SENT for {line_name_jp} !!!", flush=True)
 
                 else: # 遅延が横ばい or 微減
+                    tracking_info["last_seen_time"] = current_time
+                    print(f"--- [DELAY WATCH] Train {train_number}: Delay stable/decreased at {current_location_id}. Continuing track.", flush=True)
                     tracking_info["last_seen_time"] = current_time
             
             # ▼▼▼ 新規追跡処理 ▼▼▼
@@ -412,7 +414,9 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                      "line_id": line_id, "last_location_id": current_location_id,
                      "last_delay": current_delay, "consecutive_increase_count": 1,
                      "last_seen_time": current_time, "direction": current_direction,
-                     "notified_initial": False, "notified_escalated": False,
+                     "notified_initial": False, # 旗1
+                     "is_main_culprit": False,  # ★ 旗2
+                     "notified_escalated": False,
                      "notified_resumed": False 
                  }
         
@@ -422,6 +426,18 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
             if train_num not in trains_found_this_cycle and current_time - info["last_seen_time"] > CLEANUP_THRESHOLD_SECONDS
         ]
         for train_num in trains_to_remove:
+            info = tracked_delayed_trains[train_num]
+            # ▼▼▼ みなし再開ロジック (「主犯」が消えた時だけ通知) ▼▼▼
+            if info.get("is_main_culprit", False) and not line_resumption_notified.get(info["line_id"], False):
+                line_id = info["line_id"]
+                line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
+                location_name_jp = STATION_DICT.get(info["last_location_id"].split('.')[-1], info["last_location_id"].split('.')[-1])
+                
+                message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
+                notification_messages.append(message)
+                line_resumption_notified[line_id] = True
+                print(f"--- [DELAY WATCH] !!! RESUMPTION (TIMEOUT) NOTICE for Train {train_num} !!!", flush=True)
+            
             del tracked_delayed_trains[train_num]
             print(f"--- [DELAY WATCH] Train {train_num}: Removing track (timeout).", flush=True)
 
