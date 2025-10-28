@@ -138,7 +138,7 @@ STATION_DICT = {
     'Akihabara': '秋葉原', 'Asakusabashi': '浅草橋', 'Ryogoku': '両国', 'Kinshicho': '錦糸町', 
     'Kameido': '亀戸', 'Hirai': '平井', 
     'ShinKoiwa': '新小岩', 'Koiwa': '小岩', 'Ichikawa': '市川', 'Motoyawata': '本八幡', 
-    'ShimosaNakayama': '下総中山', 'Nishi-Funabashi': '西船橋', 'Funabashi': '船橋', 
+    'ShimosaNakayama': '下総中山', 'NishiFunabashi': '西船橋', 'Funabashi': '船橋', 
     'HigashiFunabashi': '東船橋', 'Tsudanuma': '津田沼', 'MakuhariHongo': '幕張本郷', 
     'Makuhari': '幕張', 'ShinKemigawa': '新検見川', 'Inage': '稲毛', 'NishiChiba': '西千葉', 
     'Chiba': '千葉',
@@ -161,7 +161,7 @@ STATION_DICT = {
     'MinamiTama': '南多摩', 'Inaginaganuma': '稲城長沼', 'Yanokuchi': '矢野口', 
     'Inadazutsumi': '稲田堤', 'Nakanoshima': '中野島', 'Noborito': '登戸', 'Shukugawara': '宿河原', 
     'Kuji': '久地', 'MusashiMizonokuchi': '武蔵溝ノ口', 'MusashiShinjo': '武蔵新城', 
-    'MusashiNakahara': '武蔵中原', 'Musashi-Kosugi': '武蔵小杉', 'Mukaigawara': '向河原', 
+    'MusashiNakahara': '武蔵中原', 'MusashiKosugi': '武蔵小杉', 'Mukaigawara': '向河原', 
     'Hirama': '平間', 'Kashimada': '鹿島田', 'Yako': '矢向', 'Shitte': '尻手', 
     'Kawasaki': '川崎',
 

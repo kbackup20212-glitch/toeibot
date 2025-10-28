@@ -51,9 +51,10 @@ PREDICTION_TIME_MAP = {
     "異音の確認": 20,
     "動物と衝突": 20,
     "踏切安全確認": 15,
+    "お客さま救護": 15,
     "ドア点検": 10,
-    "お客様トラブル": 10,
-    "急病人": 10,
+    "お客さまトラブル": 10,
+    
     # (将来的にはここに「ドア点検」などを追加できるね)
 }
 
@@ -253,8 +254,9 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
 
                 # ▼▼▼ リセット処理 (再開通知) ▼▼▼
                 if moved or recovered:
+                    # もし「最初の通知」が送られていて、「路線全体の再開」がまだ通知されていなければ
                     if tracking_info.get("notified_initial", False) and not line_resumption_notified.get(line_id, False):
-                        line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
+                        line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1]) # (各ファイルで辞書名は違うはず)
                         line_train_list = all_trains_by_line.get(line_id, [])
                         analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                         
@@ -263,18 +265,22 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                         
                         if analysis_result: # まだ一部が遅れている場合
                             message = (
-                                f"【{line_name_jp} 一部運転再開】\n"
+                                f"【{line_name_jp} 一部列車運転再開】\n"
                                 f"{STATION_DICT.get(tracking_info['last_location_id'].split('.')[-1], '不明な場所')}駅付近の列車は動き出しましたが、"
                                 f"現在も{analysis_result['range_text']}の{analysis_result['direction_text']}で停止中の列車があります。(最大{analysis_result['max_delay_minutes']}分遅れ)"
                             )
+                            notification_messages.append(message)
+                            # ★★★ バグ修正：ここでは「再開済み」フラグを立てない！ ★★★
+                            
                         else: # 完全復旧
                             message = (
                                 f"【{line_name_jp} 運転再開】\n"
                                 f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
                             )
-                        
-                        notification_messages.append(message)
-                        line_resumption_notified[line_id] = True
+                            notification_messages.append(message)
+                            # ★★★ 完全復旧の時だけフラグを立てる ★★★
+                            line_resumption_notified[line_id] = True
+                    
                     del tracked_delayed_trains[train_number]
                 
                 # ▼▼▼ 遅延増加処理 ▼▼▼
