@@ -4,6 +4,8 @@ import re
 import time
 import traceback # エラーの詳細表示のためにインポート
 from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone, timedelta
+JST = timezone(timedelta(hours=+9))
 
 # --- 共通データのインポート ---
 try:
@@ -43,6 +45,17 @@ GROUP_ANALYSIS_THRESHOLD = 2 # 集団遅延とみなす最低カウント
 GRACE_STATION_COUNT = 4           # 集団遅延判定の「猶予」駅数
 CLEANUP_THRESHOLD_SECONDS = 15 * 60 # 15分
 COOLDOWN_SECONDS = 30 * 60 # 30分
+
+PREDICTION_TIME_MAP = {
+    "シカと衝突": 20,
+    "異音の確認": 20,
+    "動物と衝突": 20,
+    "踏切安全確認": 15,
+    "ドア点検": 10,
+    "お客様トラブル": 10,
+    "急病人": 10,
+    # (将来的にはここに「ドア点検」などを追加できるね)
+}
 
 # --- ★★★ 分析官（ヘルパー関数） ★★★ ---
 def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -136,7 +149,7 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     # 4. 方向の日本語決定
     direction_text = "上下線"
     if "odpt.RailDirection:Inbound" in directions_set and "odpt.RailDirection:Outbound" in directions_set: direction_text = "上下線"
-    elif "odpt.RailDirection:Northbound" in directions_set and "odpt.RailDirection:Southbound" in directions_set: direction_text = "南北両方向"
+    elif "odpt.RailDirection:Northbound" in directions_set and "odpt.RailDirection:Southbound" in directions_set: direction_text = "上下線"
     elif "odpt.RailDirection:InnerLoop" in directions_set and "odpt.RailDirection:OuterLoop" in directions_set: direction_text = "内外回り"
     else:
         found_directions = [RAIL_DIRECTION_NAMES.get(d, "不明") for d in directions_set]
@@ -163,6 +176,43 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
         "suspicious_trains": main_cluster["trains"] # 旗を立てるために使う
     }
 
+# --- ★★★ 予測時刻計算（ヘルパー関数） ★★★ ---
+def _get_resume_prediction_text(line_id: str, line_info: Dict[str, Any], max_delay_seconds: int, current_time: float) -> str:
+    """
+    公式情報と最大遅延から、運転再開予測時刻のテキストを返す。
+    該当しない場合は空文字を返す。
+    """
+    global line_prediction_cooldown_tracker
+    
+    official_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
+    if not official_cause:
+        return "" # 公式原因がなければ予測しない
+
+    target_delay_seconds = 0
+    # 予測辞書をチェック
+    for cause_keyword, duration_seconds in PREDICTION_TIME_MAP.items():
+        if cause_keyword in official_cause:
+            target_delay_seconds = duration_seconds
+            break # 見つかったらループ終了
+    
+    if not target_delay_seconds:
+        return "" # 予測対象の原因でなければ終了
+
+    # 遅延が発生しており、かつ予測時間未満の場合のみ
+    if 0 < max_delay_seconds < target_delay_seconds:
+        # クールダウンチェック
+        last_prediction_time = line_prediction_cooldown_tracker.get(line_id, 0)
+        if current_time - last_prediction_time > COOLDOWN_SECONDS:
+            seconds_to_reach_target = target_delay_seconds - max_delay_seconds
+            predicted_time_dt = datetime.fromtimestamp(current_time + seconds_to_reach_target, JST)
+            predicted_time_str = predicted_time_dt.strftime('%H:%M')
+            
+            line_prediction_cooldown_tracker[line_id] = current_time # クールダウン開始
+            print(f"--- [DELAY WATCH] !!! RESUME PREDICTION SENT for {line_id} ({predicted_time_str}) !!!", flush=True)
+            return f"\n運転再開予測 {predicted_time_str}頃" # ★予測テキストを返す
+            
+    return "" # クールダウン中か、予測時間を超えていたら空文字
+
 # --- メイン関数 (バグ修正・完全版) ---
 def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[List[str]]:
     global tracked_delayed_trains, line_cooldown_tracker, line_resumption_notified
@@ -178,6 +228,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
         if not isinstance(train_data, list): return None
 
         all_trains_by_line: Dict[str, List[Dict[str, Any]]] = {}
+        max_delay_by_line: Dict[str, int] = {}
         for train in train_data:
             line_id = train.get("odpt:railway")
             if not line_id: continue
@@ -235,36 +286,60 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                     count = tracking_info["consecutive_increase_count"]
                     print(f"--- [DELAY WATCH] Train {train_number}: Count {count} at {current_location_id}", flush=True)
                     line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
+                    location_name_en = current_location_id.split('.')[-1]
+                    location_name_jp = STATION_DICT.get(location_name_en, location_name_en)
 
                     # --- 最初の通知判定 (カウント5) ---
                     if count >= INITIAL_NOTICE_THRESHOLD and not tracking_info.get("notified_initial", False):
-                        tracking_info["notified_initial"] = True
-                        print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached. Flag set.", flush=True)
+                        tracking_info["notified_initial"] = True # ★ 1. まず、無条件で「旗」を立てる
+                        
                         line_info = official_info.get(line_id, {})
                         current_official_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
                         
+                        # ★ 2. 運転見合わせスキップ
                         if current_official_status == "運転見合わせ":
                             print(f"--- [DELAY WATCH] Train {train_number}: Skipping initial notice (Official status is '運転見合わせ').", flush=True)
                         
-                        else:
-                            last_notification_time = line_cooldown_tracker.get(line_id, 0)
+                        else: # 公式が「運転見合わせ」じゃなかったら
+                            
+                            # ★ 3. エリアクールダウン
+                            # (location_name_jp はこのブロックの冒頭で定義済みのはず)
+                            cooldown_key = line_id # デフォルト
+                            if line_id == "odpt.Railway:JR-East.Chuo": # 中央本線ID
+                                cooldown_key = "JR-East.Chuo.Takao" if location_name_jp == "高尾" else "JR-East.Chuo.Other"
+                                print(f"--- [DELAY WATCH] Chuo Line Cooldown Key set to: {cooldown_key}", flush=True)
+
+                            last_notification_time = line_cooldown_tracker.get(cooldown_key, 0)
                             if current_time - last_notification_time > COOLDOWN_SECONDS:
+                                # (ここから通知作成ロジック)
                                 line_train_list = all_trains_by_line.get(line_id, [])
                                 analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                                 if analysis_result:
-                                    official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                                    cause_text = f"{official_cause_text}の影響" if official_cause_text else "何らかの事象"
+                                    status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
+                                    cause_text = "何らかの事象"
+                                    reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+                                    if reason_match:
+                                        location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
+                                        actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
+                                        cause_text = f"{actual_location}での{cause}"
+                                    else:
+                                        official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                                        if official_cause_text: cause_text = official_cause_text
                                     
-                                    message = (
-                                        f"【{line_name_jp} 運転見合わせ】\n"
-                                        f"{line_name_jp}は、{analysis_result['cause_station_jp']}で発生した{cause_text}で、"
+                                    message_body = (
+                                        f"{line_name_jp}は、{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
+
+                                    max_delay_seconds = max_delay_by_line.get(line_id, 0)
+                                    prediction_text = _get_resume_prediction_text(line_id, line_info, max_delay_seconds, current_time)
+                                    
+                                    message = f"【{line_name_jp} 運転見合わせ】\n{message_body}{prediction_text}" # ★合体
+                                    
                                     notification_messages.append(message)
                                     line_cooldown_tracker[line_id] = current_time
                                     line_resumption_notified[line_id] = False
-                                    # (旗はもう上で立てたので、ここで analyze_result の中身を更新する必要がある)
                                     for train_info in analysis_result["suspicious_trains"]:
                                          if train_info.get("odpt:trainNumber") in tracked_delayed_trains:
                                              tracked_delayed_trains[train_info["odpt:trainNumber"]]["notified_initial"] = True
@@ -274,26 +349,52 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                     
                     # --- 再通知 (カウント10) ---
                     if count >= ESCALATION_NOTICE_THRESHOLD and tracking_info.get("notified_initial", False) and not tracking_info.get("notified_escalated", False):
-                         line_train_list = all_trains_by_line.get(line_id, [])
-                         analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
-                         if analysis_result:
-                             line_info = official_info.get(line_id, {})
-                             official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                             cause_text = f"{official_cause_text}の対処が長引いている影響" if official_cause_text else "何らかの事象の対処が長引いている影響"
+                         cooldown_key = line_id # デフォルト
+                         if line_id == "odpt.Railway:JR-East.Chuo":
+                             cooldown_key = "JR-East.Chuo.Takao" if location_name_jp == "高尾" else "JR-East.Chuo.Other"
+                         # 公式情報を取得
+                         line_info = official_info.get(line_id, {})
+                         current_official_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
 
-                             message = (
-                                 f"【{line_name_jp} 運転見合わせ[継続]】\n"
-                                 f"{line_name_jp}は、{analysis_result['cause_station_jp']}で発生した{cause_text}で、"
-                                 f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
-                                 f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
-                             )
-                             notification_messages.append(message)
+                         # もし公式が「運転見合わせ」と発表していたら、[継続]通知はスキップ
+                         if current_official_status == "運転見合わせ":
+                             print(f"--- [DELAY WATCH] Train {train_number}: Skipping escalation notice (Official status is already '運転見合わせ').", flush=True)
+                             tracking_info["notified_escalated"] = True # フラグだけ立てる
+                         
+                         else: # 公式が「遅延」などの場合のみ、[継続]通知を出す
+                             line_train_list = all_trains_by_line.get(line_id, [])
+                             analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                              
-                             for train_info in analysis_result["suspicious_trains"]:
-                                 train_num = train_info.get("odpt:trainNumber")
-                                 if train_num and train_num in tracked_delayed_trains:
-                                     tracked_delayed_trains[train_num]["notified_escalated"] = True
-                             print(f"--- [DELAY WATCH] !!! ESCALATION NOTICE SENT for line {line_name_jp} !!!", flush=True)
+                             if analysis_result:
+                                # --- 原因を特定 ---
+                                 status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
+                                 cause_text = "何らかの事象" # デフォルト
+                                 reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+                                 if reason_match:
+                                     location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
+                                     actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
+                                     cause_text = f"{actual_location}での{cause}"
+                                 else:
+                                     official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                                     if official_cause_text: cause_text = official_cause_text
+
+                                 message_body = (
+                                         f"{line_name_jp}は、{cause_text}の対処が長引いている影響で、"
+                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
+                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
+                                     )
+                                 
+                                 # ★★★ 予測ロジックをここにも呼び出し ★★★
+                                 max_delay_seconds = max_delay_by_line.get(line_id, 0)
+                                 prediction_text = _get_resume_prediction_text(line_id, line_info, max_delay_seconds, current_time)
+
+                                 message = f"【{line_name_jp} 運転見合わせ[継続]】\n{message_body}{prediction_text}" # ★合体
+                                 
+                                 notification_messages.append(message)
+                                 for train_info in analysis_result["suspicious_trains"]:
+                                     if train_info.get("odpt:trainNumber") in tracked_delayed_trains:
+                                        tracked_delayed_trains[train_info["odpt:trainNumber"]]["notified_escalated"] = True
+                                 print(f"--- [DELAY WATCH] !!! ESCALATION NOTICE SENT for line {line_name_jp} !!!", flush=True)
 
                 else: # 遅延が横ばい or 微減
                     tracking_info["last_seen_time"] = current_time
