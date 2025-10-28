@@ -116,7 +116,7 @@ TRAIN_OWNER_NAMES: Dict[str, str] = {
 TOEI_LINES_TO_MONITOR = [
     {
         "id": "odpt.Railway:Toei.Mita",
-        "name": "都営三田線",
+        "name": "🔵都営三田線",
         "regular_trips": {
             ('odpt.TrainType:Toei.Local', 'NishiTakashimadaira'),
             ('odpt.TrainType:Toei.Local', 'Takashimadaira'),
@@ -138,7 +138,7 @@ TOEI_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:Toei.Shinjuku",
-        "name": "都営新宿線",
+        "name": "🟢都営新宿線",
         "regular_trips": {
             ('odpt.TrainType:Toei.Local', 'KeioTamaCenter'), 
             ('odpt.TrainType:Toei.Local', 'Hashimoto'),     
@@ -158,7 +158,7 @@ TOEI_LINES_TO_MONITOR = [
     },
     {
         "id": "odpt.Railway:Toei.Oedo",
-        "name": "都営大江戸線",
+        "name": "🔴都営大江戸線",
         "regular_trips": {
             ('odpt.TrainType:Toei.Local', 'Hikarigaoka'),      
             ('odpt.TrainType:Toei.Local', 'Tochomae'),        
@@ -169,7 +169,7 @@ TOEI_LINES_TO_MONITOR = [
     },
     {       
         "id": "odpt.Railway:Toei.Asakusa",
-        "name": "都営浅草線",
+        "name": "🔴都営浅草線",
         "regular_trips": {
             ('odpt.TrainType:Toei.AirportRapidLimitedExpress', 'HanedaAirportTerminal1and2'),
             ('odpt.TrainType:Toei.AirportRapidLimitedExpress', 'NaritaAirportTerminal1'),

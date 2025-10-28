@@ -88,48 +88,48 @@ FUKUTOSHIN_TURNING_STATIONS = {
 
 METRO_LINE_PREDICTION_DATA = {
     "odpt.Railway:TokyoMetro.Ginza": {
-        "name": "銀座線",
+        "name": "🟠銀座線",
         "stations": GINZA_LINE_STATIONS,
         "turning_stations": GINZA_LINE_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Marunouchi": {
-        "name": "丸ノ内線",
+        "name": "🔴丸ノ内線",
         "main_stations": MARUNOUCHI_MAIN_STATIONS, # 本線と支線を区別
         "branch_stations": MARUNOUCHI_BRANCH_STATIONS,
         "turning_stations": MARUNOUCHI_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "日比谷線",
+        "name": "⚪日比谷線",
         "stations": CHIYODA_STATIONS,
         "turning_stations": CHIYODA_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "東西線",
+        "name": "🔵東西線",
         "stations": TOZAI_LINE_STATIONS,
         "turning_stations": TOZAI_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "千代田線",
+        "name": "🟢千代田線",
         "stations": CHIYODA_STATIONS,
         "turning_stations": CHIYODA_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "有楽町線",
+        "name": "🟡有楽町線",
         "stations": YURAKUCHO_LINE_STATIONS,
         "turning_stations": YURAKUCHO_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "半蔵門線",
+        "name": "🟣半蔵門線",
         "stations": HANZOMON_LINE_STATIONS,
         "turning_stations": HANZOMON_TURNING_STATIONS
     },
     "odpt.Railway:TokyoMetro.Chiyoda": {
-        "name": "南北線",
+        "name": "🟢南北線",
         "stations": NAMBOKU_LINE_STATIONS,
         "turning_stations": NAMBOKU_TURNING_STATIONS
     },
     'odpt.Railway:TokyoMetro.Fukutoshin': {
-        "name": "副都心線",
+        "name": "🟤副都心線",
         "stations": FUKUTOSHIN_STATIONS,
         "turning_stations": FUKUTOSHIN_TURNING_STATIONS
     },

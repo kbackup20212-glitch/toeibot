@@ -21,7 +21,7 @@ from toei_detector import check_toei_irregularities
 from jr_east_info_detector import check_jr_east_info, get_current_official_info
 from jr_east_delay_watcher import check_delay_increase
 from tobu_delay_watcher import check_tobu_delay_increase
-
+from jr_destination_predictor import check_destination_predictions 
 
 
 load_dotenv()
@@ -102,10 +102,15 @@ async def periodic_check():
         if tobu_delay_messages:
             all_notifications.extend(tobu_delay_messages)
 
+        #9. JR 行先変更予測 ---
+        dest_pred_messages = await bot.loop.run_in_executor(None, check_destination_predictions)
+        if dest_pred_messages:
+            all_notifications.extend(dest_pred_messages)
+
         if all_notifications:
             for msg in all_notifications:
                 await channel.send(msg)
-        await asyncio.sleep(20)
+        await asyncio.sleep(12)
 
 # (Botの起動部分は変更なし)
 keep_alive()
