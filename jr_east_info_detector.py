@@ -560,13 +560,13 @@ def check_jr_east_info() -> Optional[List[str]]:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
                             if linked_line_name:
-                                reason_text = f"\nこれは、{linked_line_name} {actual_location}での{cause}の影響です。"
+                                reason_text = f"\nこれは、{linked_line_name} {actual_location}での{cause}によるものです。"
                             else:
-                                reason_text = f"\nこれは、{actual_location}での{cause}の影響です。"
+                                reason_text = f"\nこれは、{actual_location}での{cause}によるものです。"
                         elif not reason_text:
                             reason_match_simple = re.search(r'頃\s*(.+?)の影響で', current_status_text)
                             if reason_match_simple:
-                                reason_text = f"\nこれは{reason_match_simple.group(1)}です。"
+                                reason_text = f"\nこれは{reason_match_simple.group(1)}によるものです。"
                         
                         disclaimer = "\n状況により折返し運転が実施されない場合があります。"
                         

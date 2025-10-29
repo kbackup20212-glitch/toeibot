@@ -274,38 +274,28 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 moved = current_location_id != tracking_info["last_location_id"]
                 recovered = current_delay < DELAY_THRESHOLD_SECONDS
 
-                # ▼▼▼ リセット処理 (「主犯」が動いた時だけ通知) ▼▼▼
+                # ▼▼▼ リセット処理 (★君のアイデアで、ロジックを大幅に簡略化) ▼▼▼
                 if moved or recovered:
-                    # ★ もし動いたのが「主犯」で、かつ「路線再開」がまだ未通知なら
+                    
+                    # ★ 1. 動いたのが「主犯」で、かつ「路線再開」がまだ未通知か？
                     if tracking_info.get("is_main_culprit", False) and not line_resumption_notified.get(line_id, False):
                         line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
-                        line_train_list = all_trains_by_line.get(line_id, [])
-                        analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
-                        
                         range_text = STATION_DICT.get(tracking_info["last_location_id"].split('.')[-1], "不明な場所")
                         
-                        if analysis_result: # まだ一部が遅れている
-                            message = (
-                                f"【{line_name_jp} 一部列車運転再開】\n"
-                                f"{STATION_DICT.get(tracking_info['last_location_id'].split('.')[-1], '不明な場所')}駅付近の列車は動き出しましたが、"
-                                f"現在も{analysis_result['range_text']}の{analysis_result['direction_text']}で停止中の列車があります。(最大{analysis_result['max_delay_minutes']}分遅れ)"
-                            )
-                            notification_messages.append(message)
-                            # ★★★ バグ修正：ここでは「再開済み」フラグを立てない！ ★★★
-                            
-                        else: # 完全復旧
-                            message = (
-                                f"【{line_name_jp} 運転再開】\n"
-                                f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
-                            )
-                            notification_messages.append(message)
-                            # ★★★ 完全復旧の時だけフラグを立てる ★★★
-                            line_resumption_notified[line_id] = True
-                            print(f"--- [DELAY WATCH] !!! FULL RESUMPTION NOTICE SENT for line {line_name_jp} !!!", flush=True)
-                    
+                        # ★ 2. もう「一部再開」は気にせず、「完全再開」通知だけを送る
+                        message = (
+                            f"【{line_name_jp} 運転再開】\n"
+                            f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
+                        )
+                        notification_messages.append(message)
+                        line_resumption_notified[line_id] = True # ★ 3. 路線再開フラグを立てる
+                        print(f"--- [DELAY WATCH] !!! MAIN CULPRIT MOVED. FULL RESUMPTION NOTICE SENT for line {line_name_jp} !!!", flush=True)
+
+                    # ★ 4. 「主犯」じゃなかったら、ログだけ出して静かに消す
                     if moved: print(f"--- [DELAY WATCH] Train {train_number}: Reset (moved).", flush=True)
                     if recovered: print(f"--- [DELAY WATCH] Train {train_number}: Reset (delay recovered).", flush=True)
                     del tracked_delayed_trains[train_number]
+                # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
                 
                 # ▼▼▼ 遅延増加処理 ▼▼▼
                 elif current_delay > tracking_info["last_delay"]:
@@ -366,7 +356,8 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                 line_cooldown_tracker[cooldown_key] = current_time
                                 line_resumption_notified[line_id] = False
                                 
-                                if analysis_result: # 分析成功時のみ旗を立てる
+                                # ★★★ 旗1（集団）と 旗2（主犯）を立てる ★★★
+                                if analysis_result:
                                     main_culprit_num = analysis_result["main_culprit_train_number"]
                                     for train_num in analysis_result["suspicious_train_numbers"]:
                                         if train_num in tracked_delayed_trains:
@@ -374,13 +365,18 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                             if train_num == main_culprit_num:
                                                 tracked_delayed_trains[train_num]["is_main_culprit"] = True # 旗2
                                                 print(f"--- [DELAY WATCH] Train {train_num} is now MAIN CULPRIT.", flush=True)
-                                else: # 分析失敗時 (駅マップないなど)
-                                    tracking_info["notified_initial"] = True # とりあえず旗1だけ立てる
+                                else:
+                                    tracking_info["notified_initial"] = True # 分析失敗でも、トリガーになったやつには旗1を立てる
 
                                 print(f"--- [DELAY WATCH] !!! GROUP NOTICE SENT for {cooldown_key} !!!", flush=True)
-                            else:
+                            
+                            else: # クールダウン中
                                 print(f"--- [DELAY WATCH] Train {train_number}: Initial threshold reached, but area {cooldown_key} is in cooldown.", flush=True)
-                                tracking_info["notified_initial"] = True # ★クールダウンでも旗は立てる
+                                # ★ クールダウンなら旗は立てない
+                        
+                    else: # 公式が運転見合わせ
+                        print(f"--- [DELAY WATCH] Train {train_number}: Skipping initial notice (Official status is '運転見合わせ').", flush=True)
+                            # ★ 公式見合わせでも、旗は立てない (再開通知は公式情報に任せる)
                     
                     # --- 再通知 (カウント10) ---
                     # ★★★「主犯」だけが継続通知をトリガーする ★★★
