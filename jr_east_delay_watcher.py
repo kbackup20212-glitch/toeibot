@@ -189,26 +189,49 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
 # --- ★★★ 予測時刻計算（ヘルパー関数） ★★★ ---
 def _get_resume_prediction_text(line_id: str, line_info: Dict[str, Any], max_delay_seconds: int, current_time: float) -> str:
     global line_prediction_cooldown_tracker
+    
+    print(f"--- [PREDICTION DEBUG @ {line_id}] ---", flush=True) # ★ログ追加
+    
     official_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-    if not official_cause: return ""
+    if not official_cause: 
+        print(f"  > FAILED: Official cause is missing (None).", flush=True) # ★ログ追加
+        return ""
 
     target_delay_seconds = 0
+    found_cause_keyword = "" # ★見つけたキーワードを記録
     for cause_keyword, duration_minutes in PREDICTION_TIME_MAP.items():
         if cause_keyword in official_cause:
             target_delay_seconds = duration_minutes * 60
+            found_cause_keyword = cause_keyword # ★記録
             break
     
-    if not target_delay_seconds: return ""
-    if 0 < max_delay_seconds < target_delay_seconds:
-        last_prediction_time = line_prediction_cooldown_tracker.get(line_id, 0)
-        if current_time - last_prediction_time > COOLDOWN_SECONDS:
-            seconds_to_reach_target = target_delay_seconds - max_delay_seconds
-            predicted_time_dt = datetime.fromtimestamp(current_time + seconds_to_reach_target, JST)
-            predicted_time_str = predicted_time_dt.strftime('%H:%M')
-            line_prediction_cooldown_tracker[line_id] = current_time
-            print(f"--- [DELAY WATCH] !!! RESUME PREDICTION SENT for {line_id} ({predicted_time_str}) !!!", flush=True)
-            return f"\n運転再開予測 {predicted_time_str}頃"
-    return ""
+    if not target_delay_seconds: 
+        print(f"  > FAILED: Cause '{official_cause}' is not in PREDICTION_TIME_MAP.", flush=True) # ★ログ追加
+        return ""
+
+    print(f"  > Check 1: Cause '{found_cause_keyword}' found. Rule is {target_delay_seconds // 60} mins.", flush=True) # ★ログ追加
+    
+    # 条件: 0 < 最大遅延 < ルール時間
+    if not (0 < max_delay_seconds < target_delay_seconds):
+        print(f"  > FAILED: Max delay ({max_delay_seconds}s) is not within the rule range (0 ~ {target_delay_seconds}s).", flush=True) # ★ログ追加
+        return ""
+    
+    print(f"  > Check 2: Delay ({max_delay_seconds}s) is within range. OK.", flush=True) # ★ログ追加
+    
+    last_prediction_time = line_prediction_cooldown_tracker.get(line_id, 0)
+    if not (current_time - last_prediction_time > COOLDOWN_SECONDS):
+        print(f"  > FAILED: Line is still in prediction cooldown.", flush=True) # ★ログ追加
+        return ""
+    
+    print(f"  > Check 3: Cooldown check passed. OK.", flush=True) # ★ログ追加
+
+    # すべてのチェックを通過
+    seconds_to_reach_target = target_delay_seconds - max_delay_seconds
+    predicted_time_dt = datetime.fromtimestamp(current_time + seconds_to_reach_target, JST)
+    predicted_time_str = predicted_time_dt.strftime('%H:%M')
+    line_prediction_cooldown_tracker[line_id] = current_time
+    print(f"--- [DELAY WATCH] !!! RESUME PREDICTION SENT for {line_id} ({predicted_time_str}) !!!", flush=True)
+    return f"\n*運転再開予測 {predicted_time_str}頃*"
 
 # --- メイン関数 (バグ修正・完全版) ---
 def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[List[str]]:
@@ -330,7 +353,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                         if official_cause_text: cause_text = official_cause_text
                                     
                                     message_body = (
-                                        f"{line_name_jp}は、{cause_text}の影響で、"
+                                        f"{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
