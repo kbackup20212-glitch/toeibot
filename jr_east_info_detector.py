@@ -711,15 +711,7 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
 
-                        # ★★★ 日本語翻訳辞書 ★★★
-                        STATUS_PHRASES = {
-                            "遅延": "遅延しています。",
-                            "運転見合わせ": "運転を見合わせています。",
-                            "運転再開": "運転を見合わせていましたが、運転を再開しダイヤが乱れています。",
-                            "運転再開見込": "運転を見合わせています。運転再開は{resume_time}頃を見込んでいます。",
-                        }
-                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 辞書から引く
-                        title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータスのまま
+                        
 
                         # 1. 現在のテキストを「半角」に翻訳
                         normalized_text = unicodedata.normalize('NFKC', current_status_text)
@@ -738,9 +730,19 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                                 last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_last_text)
                                 
                                 if last_resume_match and last_resume_match.group(1) != resume_time:
-                                    title += "【⚠️運転再開見込み時刻が変更になりました】" # 時刻が変わっていたら(変更)
+                                    title += "【⚠️運転再開見込み時刻変更】" # 時刻が変わっていたら(変更)
                                 elif "変更" in normalized_text: # 翻訳後のテキストに「変更」があれば
-                                    title += "【⚠️運転再開見込み時刻が変更になりました】"
+                                    title += "【⚠️運転再開見込み時刻変更】"
+                        
+                        # ★★★ 日本語翻訳辞書 ★★★
+                        STATUS_PHRASES = {
+                            "遅延": "遅延しています。",
+                            "運転見合わせ": "運転を見合わせています。",
+                            "運転再開": "運転を見合わせていましたが、運転を再開しダイヤが乱れています。",
+                            "運転再開見込": "運転を見合わせています。運転再開は{resume_time}頃を見込んでいます。",
+                        }
+                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 辞書から引く
+                        title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータスのまま
 
                     # --- 原因抽出 (こっちも翻訳後のテキストを使う) ---
                         reason_text = ""
