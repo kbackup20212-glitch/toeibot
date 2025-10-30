@@ -327,18 +327,20 @@ def _find_nearest_hub(station_list: List[str], hubs: set, start_index: int, dire
     return None
 
 # --- メイン関数 (ロジック共通化・最終版) ---
-def check_jr_east_info() -> Optional[List[str]]:
-    global last_jr_east_statuses, current_official_info
+def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]]: # ★ 戻り値をタプルに変更
+    global last_jr_east_statuses
     notification_messages: List[str] = []
-    current_official_info = {}
+    
+    # ★ ホワイトボードは、この関数の中だけで使う「ローカル変数」にする
+    current_official_info: Dict[str, Dict[str, Any]] = {} 
     
     try:
         params = {"odpt:operator": "odpt.Operator:jre-is", "acl:consumerKey": API_TOKEN}
         response = requests.get(API_ENDPOINT, params=params, timeout=30)
         response.raise_for_status()
         try: info_data: Any = response.json()
-        except requests.exceptions.JSONDecodeError as json_err: return None
-        if not isinstance(info_data, list): return None
+        except requests.exceptions.JSONDecodeError as json_err: return None, {} # ★ 失敗時は空の辞書を返す
+        if not isinstance(info_data, list): return None, {}
 
         info_dict: Dict[str, Dict[str, Any]] = {}
         for item in info_data:
@@ -346,12 +348,10 @@ def check_jr_east_info() -> Optional[List[str]]:
                  info_dict[item["odpt:railway"]] = item
 
         for line_id, line_info in info_dict.items():
-            
             if line_id not in JR_LINE_PREDICTION_DATA: continue
-
+            
             current_status_text: str = line_info["odpt:trainInformationText"]["ja"]
-            current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")
-            current_official_info[line_id] = line_info
+            current_official_info[line_id] = line_info # ★ この関数の中だけで使う
             
             if not current_status_text: continue
 
@@ -658,14 +658,16 @@ def check_jr_east_info() -> Optional[List[str]]:
                         final_message = f"{title}\n{reason_text}"
                         notification_messages.append(final_message)
         
-        return notification_messages
+        return notification_messages, current_official_info
 
-    except requests.exceptions.RequestException as req_err: return None
+    except requests.exceptions.RequestException as req_err: 
+        print(f"--- [JR INFO] ERROR: Network error: {req_err}", flush=True)
+        return None, {} # ★ 失敗時は空の辞書を返す
     except Exception as e:
         import traceback
         print(f"--- [JR INFO] ERROR: An unexpected error occurred in check_jr_east_info: {e}", flush=True)
         traceback.print_exc()
-        return None
+        return None, {}
 
 # --- 遅延検知にステータスを渡すための関数 ---
 def get_current_official_info() -> Dict[str, Dict[str, Any]]:

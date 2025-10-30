@@ -18,7 +18,7 @@ from tokyo_metro_detector import check_tokyo_metro_info
 
 from toei_delay_watcher import check_toei_delay_increase
 from toei_detector import check_toei_irregularities
-from jr_east_info_detector import check_jr_east_info, get_current_official_info
+from jr_east_info_detector import check_jr_east_info
 from jr_east_delay_watcher import check_delay_increase
 from tobu_delay_watcher import check_tobu_delay_increase
 from jr_destination_predictor import check_destination_predictions 
@@ -68,11 +68,12 @@ async def periodic_check():
         if jr_messages: all_notifications.extend(jr_messages)
 
         # 2. JR東 運行情報
-        jr_info_messages = await bot.loop.run_in_executor(None, check_jr_east_info)
-        official_info = await bot.loop.run_in_executor(None, get_current_official_info)
-        
-        if jr_info_messages:
-            all_notifications.extend(jr_info_messages)
+        result = await bot.loop.run_in_executor(None, check_jr_east_info)
+        if result:
+            jr_info_messages, official_info = result # ★ 戻り値を2つ受け取る
+            if jr_info_messages:
+                all_notifications.extend(jr_info_messages)
+        # (もし result が None (失敗) だったら、official_info は空のまま)
         
         # 3. 都営 非定期
         toei_messages = await bot.loop.run_in_executor(None, check_toei_irregularities)
@@ -88,7 +89,6 @@ async def periodic_check():
 
         # 6. JR東日本 遅延増加監視
         delay_watcher_messages = await bot.loop.run_in_executor(None, check_delay_increase, official_info)
-        
         if delay_watcher_messages:
             all_notifications.extend(delay_watcher_messages)
         
