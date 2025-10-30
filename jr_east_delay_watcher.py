@@ -169,12 +169,12 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     max_index = max(main_cluster["indices"])
     range_text = f"{station_list[min_index]}～{station_list[max_index]}"
     if min_index == max_index:
-         range_text = f"{station_list[min_index]}駅付近"
+         range_text = f"{station_list[min_index]}付近"
 
     cause_station_jp = range_text
     if cause_location_id:
         cause_station_en = cause_location_id.split('.')[-1]
-        cause_station_jp = STATION_DICT.get(cause_station_en, cause_station_en) + "駅付近"
+        cause_station_jp = STATION_DICT.get(cause_station_en, cause_station_en) + "付近"
 
     # 6. 分析結果を辞書で返す (★ 返す中身を変更)
     return {
@@ -285,7 +285,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                         # ★ 2. もう「一部再開」は気にせず、「完全再開」通知だけを送る
                         message = (
                             f"【{line_name_jp} 運転再開】\n"
-                            f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。"
+                            f"{range_text}付近のトラブルは解消した模様です。運転を順次再開しました。(最大{int(current_delay / 60)}分遅れ)"
                         )
                         notification_messages.append(message)
                         line_resumption_notified[line_id] = True # ★ 3. 路線再開フラグを立てる
@@ -328,7 +328,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                 line_train_list = all_trains_by_line.get(line_id, [])
                                 analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                                 
-                                message_body = f"{line_name_jp}は、{location_name_jp}駅付近で何らかの事象の影響で、運転を見合わせている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
+                                message_body = f"{location_name_jp}付近で何らかの事象の影響で、運転を見合わせている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
                                 
                                 if analysis_result:
                                     status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
@@ -343,7 +343,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                         if official_cause_text: cause_text = official_cause_text
                                     
                                     message_body = (
-                                        f"{cause_text}の影響で、"
+                                        f"{range_text}付近での{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
@@ -398,7 +398,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                              line_train_list = all_trains_by_line.get(line_id, [])
                              analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                              
-                             message_body = f"{line_name_jp}は、{location_name_jp}駅付近でのトラブル対応が長引いている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
+                             message_body = f"{line_name_jp}は、{location_name_jp}付近でのトラブル対応が長引いている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
                              
                              if analysis_result:
                                  # --- 原因を特定 ---
@@ -415,7 +415,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                  
                                  # --- 本文を上書き ---
                                  message_body = (
-                                     f"{cause_text}の対処が長引いている影響で、"
+                                     f"{range_text}付近での{cause_text}の対処が長引いている影響で、"
                                      f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                      f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                  )
@@ -466,7 +466,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
                 location_name_jp = STATION_DICT.get(info["last_location_id"].split('.')[-1], info["last_location_id"].split('.')[-1])
                 
-                message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
+                message = f"【{line_name_jp} 運転再開】\n{location_name_jp}付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
                 notification_messages.append(message)
                 line_resumption_notified[line_id] = True
             

@@ -276,11 +276,11 @@ JR_LINE_PREDICTION_DATA = {
     },
     "odpt.Railway:JR-East.Yamanote": {
         "name": "🟩山手線",
-        "stations":['大崎', '五反田', '目黒', '恵比寿', '渋谷', '原宿', '代々木', '新宿', 
-                    '新大久保', '高田馬場', '目白', '池袋', '大塚', '巣鴨', '駒込', '田端', 
-                    '西日暮里', '日暮里', '鶯谷', '上野', '御徒町', '秋葉原', '神田', '東京', 
-                    '有楽町', '新橋', '浜松町', '田町', '高輪ゲートウェイ', '品川'],
-        "turning_stations":{},
+        "stations":['東京', '神田', '秋葉原', '御徒町', '上野', '鶯谷', '日暮里', '西日暮里', 
+                    '田端', '駒込', '巣鴨', '大塚', '池袋', '目白', '高田馬場', '新大久保', 
+                    '新宿', '代々木', '原宿', '渋谷', '恵比寿', '目黒', '五反田', '大崎', 
+                    '品川', '高輪ゲートウェイ', '田町', '浜松町', '新橋', '有楽町', '東京'],
+        "turning_stations":{'池袋', '上野', '田町', '大崎'},
     },
     "odpt.Railway:JR-East.Echigo": {
         "name": "🟩越後線",
@@ -292,12 +292,40 @@ JR_LINE_PREDICTION_DATA = {
                             '関屋', '白山', '新潟'},
         "hubs": {'柏崎','吉田','新潟'}
     },
+    "odpt.Railway:JR-East.Sagami": {
+        "name": "🟦相模線",
+        "stations":['茅ケ崎','北茅ケ崎','香川','寒川','宮山','倉見','門沢橋','社家','厚木','海老名',
+                    '入谷','相武台下','下溝','原当麻','番田','上溝','南橋本','橋本'],
+        "turning_stations":{'茅ケ崎','寒川','厚木','原当麻','橋本'},
+    },
+    "odpt.Railway:JR-East.Ryomo": {
+        "name": "🟨両毛線",
+        "stations":['高崎','高崎問屋町','井野','新前橋','前橋','前橋大島','駒形','伊勢崎','国定','岩宿',
+                    '桐生','小俣','山前','足利','あしかがフラワーパーク','富田','佐野','岩舟','大平下',
+                    '栃木','思川','小山'],
+        "turning_stations":{'高崎','新前橋','前橋','伊勢崎','国定','岩宿','桐生',
+                            '山前','足利','岩舟','小山'},
+    },
+    "odpt.Railway:JR-East.Komi": {
+        "name": "🟩小海線",
+        "stations":['小淵沢','甲斐小泉','甲斐大泉','清里','野辺山','信濃川上','佐久広瀬','佐久海ノ口',
+                    '海尻','松原湖','小海','馬流','高岩','八千穂','海瀬','羽黒下','青沼','臼田',
+                    '龍岡城','太田部','中込','滑津','北中込','岩村田','佐久平','中佐都','美里','三岡',
+                    '乙女','東小諸','小諸'],
+        "turning_stations":{'小淵沢','甲斐小泉','清里','野辺山','小海','臼田','中込','小諸'},
+    },
+    "odpt.Railway:JR-East.Oito": {
+        "name": "🟪大糸線",
+        "stations":['松本','北松本','島内','島高松','梓橋','一日市場','中萱','南豊科','豊科','柏矢町',
+                    '穂高','有明','安曇追分','細野','北細野','信濃松川','安曇沓掛','信濃常盤','南大町',
+                    '信濃大町','北大町','信濃木崎','稲尾','海ノ口','簗場','南神城','神城','飯森','白馬',
+                    '信濃森上','白馬大池','千国','南小谷'],
+        "turning_stations":{'松本','一日市場','穂高','有明','安曇追分','信濃大町','簗場','南神城',
+                            '神城','白馬','信濃森上','南小谷'},
+    },
 
     "odpt.Railway:JR-East.NaritaAirportBranch": {"name": "🟦成田線(空港支線)"},
-    "odpt.Railway:JR-East.Ryomo": {"name": "🟨両毛線"},
     "odpt.Railway:JR-East.Shinonoi": {"name": "🟧篠ノ井線"},
-    "odpt.Railway:JR-East.Oito": {"name": "🟪大糸線"},
-    "odpt.Railway:JR-East.Sagami": {"name": "🟦相模線"},
     "odpt.Railway:JR-East.Karasuyama": {"name": "🟩烏山線"},
     }
 
@@ -351,6 +379,7 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
             if line_id not in JR_LINE_PREDICTION_DATA: continue
             
             current_status_text: str = line_info["odpt:trainInformationText"]["ja"]
+            current_info_status: Optional[str] = line_info.get("odpt:trainInformationStatus", {}).get("ja")
             current_official_info[line_id] = line_info # ★ この関数の中だけで使う
             
             if not current_status_text: continue
@@ -490,7 +519,19 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                     station_list: List[str] = []
                     turning_stations = line_data.get("turning_stations", set())
                     hubs = line_data.get("hubs", set())
-                    is_branch_line = False # (丸ノ内線用、JRでは使わないが一応)
+                    is_branch_line = False
+                    skip_prediction = False
+
+                    # ▼▼▼▼▼ ここが新しい「山手線専用門番」 ▼▼▼▼▼
+                    if line_id == "odpt.Railway:JR-East.Yamanote":
+                        if "運転再開見込は立っていません" not in current_status_text and \
+                           "運転再開には相当な時間がかかる" not in current_status_text:
+                            
+                            print(f"--- [JR INFO] Yamanote Line: Stoppage not severe. Skipping prediction.", flush=True)
+                            skip_prediction = True # ★ 予測をスキップ
+                        else:
+                            print(f"--- [JR INFO] Yamanote Line: Severe stoppage detected! Forcing prediction.", flush=True)
+                    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
                     # --- 2. 路線ごとの駅リストを特定 ---
                     if line_id == "odpt.Railway:JR-East.Narita" or line_id == "odpt.Railway:JR-East.NaritaAbikoBranch":
@@ -572,6 +613,41 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                         # --- 4. メッセージ作成 ---
                         message_title = f"【{line_name_jp} 折返し区間予測】"
                         running_sections = []
+
+                        # ▼▼▼▼▼ ここからが山手線・特別ロジック ▼▼▼▼▼
+                        if line_id == "odpt.Railway:JR-East.Yamanote":
+                            if turn_back_1 and turn_back_2:
+                                # 2つの折り返し駅の「駅リスト」上の位置（インデックス）を取得
+                                try:
+                                    idx1 = station_list.index(turn_back_1)
+                                    idx2 = station_list.index(turn_back_2)
+                                    osaki_idx = station_list.index('大崎')
+                                    
+                                    start_idx = min(idx1, idx2)
+                                    end_idx = max(idx1, idx2)
+                                    
+                                    # 事故が起きた駅のインデックスも取得 (station_to_compare を使う)
+                                    incident_idx = station_list.index(station_to_compare)
+                                    
+                                    path_text = f"・{turn_back_1}～{turn_back_2}"
+                                    
+                                    # 事故が「池袋(12)～上野(4)」の間（田端(8)など）で起きたか？
+                                    if start_idx <= incident_idx <= end_idx:
+                                        # 止まっているのが「池袋～上野」
+                                        # → 動いているのは「上野～(大崎)～池袋」
+                                        if osaki_idx > end_idx or osaki_idx < start_idx: # 大崎が動いてる区間にあるか？
+                                            path_text = f"・{turn_back_2}～(大崎)～{turn_back_1}"
+                                    else:
+                                        # 止まっているのが「上野～(大崎)～池袋」
+                                        # → 動いているのは「池袋～上野」
+                                        if start_idx <= osaki_idx <= end_idx: # 大崎が止まってる区間にあるか？
+                                            path_text = f"・{turn_back_1}～(大崎)～{turn_back_2}"
+                                            
+                                    running_sections.append(path_text)
+                                    
+                                except ValueError: # .index()で駅が見つからなかった場合
+                                    running_sections.append(f"・{turn_back_1}～{turn_back_2}") # 従来の方法で表示
+                                    
                         if hubs: # ハブ方式 (宇都宮線, 成田線)
                             if turn_back_1:
                                 hub_1 = _find_nearest_hub(station_list, hubs, station_list.index(turn_back_1), -1)
@@ -630,33 +706,43 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                         title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータスのまま
 
                         resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
-                        if resume_estimate_time_str:
-                            try:
-                                resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
-                                title = f"【{line_name_jp} {current_info_status} {resume_time}】"
-                                last_status_full = last_jr_east_statuses.get(line_id)
-                                if last_status_full:
-                                    last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
-                                    if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分': title += "(変更)"
-                                    elif "変更" in last_status_full: title += "(変更)"
-                            except (ValueError, TypeError): pass
+                    if resume_estimate_time_str:
+                        try:
+                            resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
+                            title = f"【{line_name_jp} {current_info_status} {resume_time}】"
+                            last_status_full = last_jr_east_statuses.get(line_id)
+                            if last_status_full:
+                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
+                                if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分': title += "(変更)"
+                                elif "変更" in last_status_full: title += "(変更)"
+                        except (ValueError, TypeError): pass
 
-                        reason_text = ""
-                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
-                        if reason_match:
-                            location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
-                            actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                            if linked_line_name:
-                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{status_jp}"
-                            else:
-                                reason_text = f"{actual_location}での{cause}のため、{status_jp}"
-                        elif not reason_text:
-                            current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                            if current_info_cause: reason_text = f"{current_info_cause}のため、{status_jp}"
-                            else: reason_text = current_status_text.split('。')[0] + "。"
-                        
-                        final_message = f"{title}\n{reason_text}"
-                        notification_messages.append(final_message)
+                    # --- ★★★ 賢い原因抽出 ★★★ ---
+                    reason_text = ""
+                    # 連携済みの status_to_check を参照
+                    reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check) 
+                    
+                    if reason_match:
+                        location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
+                        actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
+                        if linked_line_name:
+                            # 連携先がある場合
+                            reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{status_jp}"
+                        else:
+                            # 自路線の情報の場合
+                            reason_text = f"{actual_location}での{cause}のため、{status_jp}"
+                    
+                    elif not reason_text: # 正規表現が失敗したら
+                        # APIの「原因」フィールドを使う
+                        current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                        if current_info_cause: 
+                            reason_text = f"{current_info_cause}のため、{status_jp}"
+                        else: 
+                            # 最終手段：テキストの1文目
+                            reason_text = current_status_text.split('。')[0] + "。"
+                    
+                    final_message = f"{title}\n{reason_text}"
+                    notification_messages.append(final_message)
         
         return notification_messages, current_official_info
 
