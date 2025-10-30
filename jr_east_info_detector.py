@@ -3,6 +3,7 @@ import requests
 import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import unicodedata
 
 API_TOKEN = os.getenv('ODPT_TOKEN_CHALLENGE')
 API_ENDPOINT = "https://api-challenge.odpt.org/api/v4/odpt:TrainInformation"
@@ -692,9 +693,15 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                 # ▼▼▼ 通常の運行情報通知 (賢い要約版) ▼▼▼
                 if not prediction_made:
                     NORMAL_STATUS_KEYWORDS = ["平常", "正常", "お知らせ"]
+                    
+                    # ★★★ 1. 先に「ステータス」と「時刻」を取得 ★★★
+                    current_info_status = line_info.get("odpt:trainInformationStatus", {}).get("ja")
+                    resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
+
+                    # ★★★ 2. その後で「通知するか」のゲートをチェック ★★★
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
-                        
+
                         # ★★★ 日本語翻訳辞書 ★★★
                         STATUS_PHRASES = {
                             "遅延": "遅延しています。",
@@ -705,44 +712,46 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                         status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # 辞書から引く
                         title = f"【{line_name_jp} {current_info_status}】" # タイトルはステータスのまま
 
-                        resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
-                    if resume_estimate_time_str:
-                        try:
-                            resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
-                            title = f"【{line_name_jp} {current_info_status} {resume_time}】"
+                        # 1. 現在のテキストを「半角」に翻訳
+                        normalized_text = unicodedata.normalize('NFKC', current_status_text)
+                        
+                        # 2. 翻訳後のテキストから「X時X分」を探す
+                        resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_text)
+                        
+                        if resume_match:
+                            resume_time = resume_match.group(1) # 例: "13時00分"
+                            title = f"【{line_name_jp} {current_info_status} {resume_time}】" # タイトルを上書き
+                            
+                            # 3. 「(変更)」を付けるか、前回のテキストも「半角」に翻訳して比較
                             last_status_full = last_jr_east_statuses.get(line_id)
                             if last_status_full:
-                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
-                                if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分': title += "(変更)"
-                                elif "変更" in last_status_full: title += "(変更)"
-                        except (ValueError, TypeError): pass
+                                normalized_last_text = unicodedata.normalize('NFKC', last_status_full)
+                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_last_text)
+                                
+                                if last_resume_match and last_resume_match.group(1) != resume_time:
+                                    title += "(変更)" # 時刻が変わっていたら(変更)
+                                elif "変更" in normalized_text: # 翻訳後のテキストに「変更」があれば
+                                    title += "(変更)"
 
-                    # --- ★★★ 賢い原因抽出 ★★★ ---
-                    reason_text = ""
-                    # 連携済みの status_to_check を参照
-                    reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check) 
-                    
-                    if reason_match:
-                        location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
-                        actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                        if linked_line_name:
-                            # 連携先がある場合
-                            reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{status_jp}"
-                        else:
-                            # 自路線の情報の場合
-                            reason_text = f"{actual_location}での{cause}のため、{status_jp}"
-                    
-                    elif not reason_text: # 正規表現が失敗したら
-                        # APIの「原因」フィールドを使う
-                        current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                        if current_info_cause: 
-                            reason_text = f"{current_info_cause}のため、{status_jp}"
-                        else: 
-                            # 最終手段：テキストの1文目
-                            reason_text = current_status_text.split('。')[0] + "。"
-                    
-                    final_message = f"{title}\n{reason_text}"
-                    notification_messages.append(final_message)
+                    # --- 原因抽出 (こっちも翻訳後のテキストを使う) ---
+                        reason_text = ""
+                        # ★ 翻訳後のテキスト(normalized_text) を参照
+                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', normalized_text)
+                        
+                        if reason_match:
+                            location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
+                            actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
+                            if linked_line_name:
+                                reason_text = f"{linked_line_name} {actual_location}での{cause}のため、{status_jp}"
+                            else:
+                                reason_text = f"{actual_location}での{cause}のため、{status_jp}"
+                        elif not reason_text:
+                            current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                            if current_info_cause: reason_text = f"{current_info_cause}のため、{status_jp}"
+                            else: reason_text = normalized_text.split('。')[0] + "。"
+                        
+                        final_message = f"{title}\n{reason_text}"
+                        notification_messages.append(final_message)
         
         return notification_messages, current_official_info
 
