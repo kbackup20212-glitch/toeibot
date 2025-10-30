@@ -738,9 +738,9 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                                 last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_last_text)
                                 
                                 if last_resume_match and last_resume_match.group(1) != resume_time:
-                                    title += "(変更)" # 時刻が変わっていたら(変更)
+                                    title += "【⚠️運転再開見込み時刻が変更になりました】" # 時刻が変わっていたら(変更)
                                 elif "変更" in normalized_text: # 翻訳後のテキストに「変更」があれば
-                                    title += "(変更)"
+                                    title += "【⚠️運転再開見込み時刻が変更になりました】"
 
                     # --- 原因抽出 (こっちも翻訳後のテキストを使う) ---
                         reason_text = ""

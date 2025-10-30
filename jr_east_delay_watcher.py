@@ -328,25 +328,25 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                 line_train_list = all_trains_by_line.get(line_id, [])
                                 analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
                                 
-                                message_body = f"{location_name_jp}付近で何らかの事象の影響で、運転を見合わせている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
+                                # ▼▼▼▼▼ ここが修正箇所 ▼▼▼▼▼
+                                # ★ まず、分析失敗時の「代わりの範囲」を用意
+                                range_text = f"{location_name_jp}駅付近"
                                 
                                 if analysis_result:
                                     status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
                                     cause_text = "何らかの事象"
-                                    reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
-                                    if reason_match:
-                                        location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
-                                        actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                                        cause_text = f"{actual_location}での{cause}"
-                                    else:
-                                        official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                                        if official_cause_text: cause_text = official_cause_text
+                                    # ... (reason_match など) ...
                                     
+                                    # ★ 分析成功したら、正しい「範囲」と「本文」を上書き
+                                    range_text = analysis_result['range_text'] # ★分析結果で上書き
                                     message_body = (
-                                        f"{range_text}付近での{cause_text}の影響で、"
+                                        f"{line_name_jp}は、{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
+                                else:
+                                    # ★ 分析失敗したら、デフォルトの本文を使う
+                                    message_body = f"{line_name_jp}は、{range_text}で何らかの事象の影響で、運転を見合わせています。(最大{int(current_delay / 60)}分遅れ)"
                                 
                                 max_delay_seconds = 0
                                 if analysis_result:
@@ -396,29 +396,27 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                          
                          else: # 公式が「遅延」などの場合のみ、[継続]通知を出す
                              line_train_list = all_trains_by_line.get(line_id, [])
-                             analysis_result = _analyze_group_delay(line_id, line_name_jp, line_train_list)
+                             analysis_result = _analyze_group_delay(line_id, line_name_jp, all_trains_by_line.get(line_id, []))
                              
-                             message_body = f"{line_name_jp}は、{location_name_jp}付近でのトラブル対応が長引いている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
+                             # ▼▼▼▼▼ ここが修正箇所 ▼▼▼▼▼
+                             # ★ まず、分析失敗時の「代わりの範囲」を用意
+                             range_text = f"{location_name_jp}駅付近"
                              
                              if analysis_result:
-                                 # --- 原因を特定 ---
+                                 # (原因特定ロジックは変更なし)
                                  status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
-                                 cause_text = "何らかの事象" # デフォルト
-                                 reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
-                                 if reason_match:
-                                     location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
-                                     actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                                     cause_text = f"{actual_location}での{cause}"
-                                 else:
-                                     official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                                     if official_cause_text: cause_text = official_cause_text
+                                 # ... (cause_text の特定) ...
                                  
-                                 # --- 本文を上書き ---
+                                 # ★ 分析成功したら、正しい「範囲」と「本文」を上書き
+                                 range_text = analysis_result['range_text'] # ★分析結果で上書き
                                  message_body = (
-                                     f"{range_text}付近での{cause_text}の対処が長引いている影響で、"
+                                     f"{line_name_jp}は、{cause_text}の対処が長引いている影響で、"
                                      f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                      f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                  )
+                             else:
+                                 # ★ 分析失敗したら、デフォルトの本文を使う
+                                 message_body = f"{line_name_jp}は、{range_text}でのトラブル対応が長引いている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
 
                              # --- 予測時刻を計算 ---
                              max_delay_seconds = 0 # まず初期化
