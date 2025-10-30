@@ -348,7 +348,12 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
                                 
-                                max_delay_seconds = max_delay_by_line.get(line_id, 0)
+                                max_delay_seconds = 0
+                                if analysis_result:
+                                     max_delay_seconds = analysis_result['max_delay_minutes'] * 60
+                                else:
+                                     max_delay_seconds = current_delay
+                             
                                 prediction_text = _get_resume_prediction_text(line_id, line_info, max_delay_seconds, current_time)
                                 message = f"【{line_name_jp} 運転見合わせ】\n{message_body}{prediction_text}"
                                 
@@ -416,7 +421,14 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                  )
 
                              # --- 予測時刻を計算 ---
-                             max_delay_seconds = max_delay_by_line.get(line_id, 0)
+                             max_delay_seconds = 0 # まず初期化
+                             if analysis_result:
+                                    # ★ 分析結果（例: 20分）を秒に直して使う
+                                max_delay_seconds = analysis_result['max_delay_minutes'] * 60
+                             else:
+                                    # ★ 分析失敗なら、その列車の遅延を使う
+                                max_delay_seconds = current_delay 
+                                
                              prediction_text = _get_resume_prediction_text(line_id, line_info, max_delay_seconds, current_time)
                              
                              # --- メッセージを組み立て ---

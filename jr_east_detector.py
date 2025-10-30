@@ -137,7 +137,7 @@ STATION_DICT = {
     'Shinanomachi': '信濃町', 'Ichigaya': '市ケ谷', 'Iidabashi': '飯田橋', 'Suidobashi': '水道橋', 
     'Akihabara': '秋葉原', 'Asakusabashi': '浅草橋', 'Ryogoku': '両国', 'Kinshicho': '錦糸町', 
     'Kameido': '亀戸', 'Hirai': '平井', 
-    'ShinKoiwa': '新小岩', 'Koiwa': '小岩', 'Ichikawa': '市川', 'Motoyawata': '本八幡', 
+    'ShinKoiwa': '新小岩', 'Koiwa': '小岩', 'Ichikawa': '市川', 'MotoYawata': '本八幡', 
     'ShimosaNakayama': '下総中山', 'NishiFunabashi': '西船橋', 'Funabashi': '船橋', 
     'HigashiFunabashi': '東船橋', 'Tsudanuma': '津田沼', 'MakuhariHongo': '幕張本郷', 
     'Makuhari': '幕張', 'ShinKemigawa': '新検見川', 'Inage': '稲毛', 'NishiChiba': '西千葉', 

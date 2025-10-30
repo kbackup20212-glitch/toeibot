@@ -260,7 +260,7 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
             
             # ▼▼▼ 新規追跡処理 ▼▼▼
             elif current_delay >= DELAY_THRESHOLD_SECONDS:
-                 print(f"--- [TOBU DELAY WATCH] Train {train_number}: Start tracking (Delay={current_delay}s at {current_location_id}).", flush=True)
+                
                  tracked_delayed_trains[train_number] = {
                      "line_id": line_id, "last_location_id": current_location_id,
                      "last_delay": current_delay, "consecutive_increase_count": 1,
