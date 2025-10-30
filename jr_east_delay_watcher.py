@@ -428,11 +428,10 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
 
                 else: # 遅延が横ばい or 微減
                     tracking_info["last_seen_time"] = current_time
-                    print(f"--- [DELAY WATCH] Train {train_number}: Delay stable/decreased at {current_location_id}. Continuing track.", flush=True)
+                    
             
             # ▼▼▼ 新規追跡処理 ▼▼▼
             elif current_delay >= DELAY_THRESHOLD_SECONDS:
-                 print(f"--- [DELAY WATCH] Train {train_number}: Start tracking (Delay={current_delay}s at {current_location_id}).", flush=True)
                  tracked_delayed_trains[train_number] = {
                      "line_id": line_id, "last_location_id": current_location_id,
                      "last_delay": current_delay, "consecutive_increase_count": 1,
@@ -458,10 +457,10 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
                 notification_messages.append(message)
                 line_resumption_notified[line_id] = True
-                print(f"--- [DELAY WATCH] !!! RESUMPTION (TIMEOUT) NOTICE for Train {train_num} !!!", flush=True)
+            
             
             del tracked_delayed_trains[train_num]
-            print(f"--- [DELAY WATCH] Train {train_num}: Removing track (timeout).", flush=True)
+
 
         return notification_messages
 
