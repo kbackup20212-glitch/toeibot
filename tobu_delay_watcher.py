@@ -236,7 +236,7 @@ def check_tobu_delay_increase() -> Optional[List[str]]:
                                         running_sections.append(f"・{turn_back_2}～{line_end}")
 
                                     # (原因テキストは遅延検知では特定できないので、簡易版)
-                                    reason_text = f"\nこれは、{location_name_jp}駅付近でのトラブルの影響と推測されます。"
+                                    reason_text = f"\nこれは、{location_name_jp}駅付近でのトラブル対処が長引いている影響です。"
                                     disclaimer = "\n状況により折返し運転が実施されない場合があります。"
                                     
                                     final_message = message_title
