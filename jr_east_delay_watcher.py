@@ -171,12 +171,12 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
     max_index = max(main_cluster["indices"])
     range_text = f"{station_list[min_index]}～{station_list[max_index]}"
     if min_index == max_index:
-         range_text = f"{station_list[min_index]}付近"
+         range_text = f"{station_list[min_index]}駅付近"
 
     cause_station_jp = range_text
     if cause_location_id:
         cause_station_en = cause_location_id.split('.')[-1]
-        cause_station_jp = STATION_DICT.get(cause_station_en, cause_station_en) + "付近"
+        cause_station_jp = STATION_DICT.get(cause_station_en, cause_station_en) + "駅付近"
 
     # 6. 分析結果を辞書で返す (★ 返す中身を変更)
     return {
@@ -253,13 +253,17 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
 
         # 2. 路線ごとの全列車リストと、最大遅延を集計
         all_trains_by_line: Dict[str, List[Dict[str, Any]]] = {}
-        max_delay_by_line: Dict[str, int] = {}
+        max_delay_by_line: Dict[str, int] = {} # ★ 箱は用意されてるけど...
         for train in train_data:
             line_id = train.get("odpt:railway")
             if not line_id: continue
-            if line_id not in all_trains_by_line:
-                all_trains_by_line[line_id] = []
+            if line_id not in all_trains_by_line: all_trains_by_line[line_id] = []
             all_trains_by_line[line_id].append(train)
+            
+            # ★★★ ここの計算が正しいか？ ★★★
+            current_delay = train.get("odpt:delay", 0)
+            if current_delay > max_delay_by_line.get(line_id, 0):
+                max_delay_by_line[line_id] = current_delay
 
         # 4. 既存の「不審遅延」ロジック (追跡リスト更新)
         for train in train_data:
@@ -288,7 +292,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                         # ★ 2. もう「一部再開」は気にせず、「完全再開」通知だけを送る
                         message = (
                             f"【{line_name_jp} 運転再開】\n"
-                            f"{range_text}付近のトラブルは解消した模様です。運転を順次再開しました。(最大{int(current_delay / 60)}分遅れ)"
+                            f"{range_text}駅付近のトラブルは解消した模様です。運転を順次再開しました。(最大{int(current_delay / 60)}分遅れ)"
                         )
                         notification_messages.append(message)
                         line_resumption_notified[line_id] = True # ★ 3. 路線再開フラグを立てる
@@ -411,7 +415,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                              
                              # ▼▼▼▼▼ ここが修正箇所 ▼▼▼▼▼
                              # ★ まず、分析失敗時の「代わりの範囲」を用意
-                             range_text = f"{location_name_jp}付近"
+                             range_text = f"{location_name_jp}駅付近での"
                              
                              if analysis_result:
                                  # (原因特定ロジックは変更なし)
@@ -494,7 +498,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                 line_name_jp = JR_LINE_NAMES.get(line_id, line_id.split('.')[-1])
                 location_name_jp = STATION_DICT.get(info["last_location_id"].split('.')[-1], info["last_location_id"].split('.')[-1])
                 
-                message = f"【{line_name_jp} 運転再開】\n{location_name_jp}付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
+                message = f"【{line_name_jp} 運転再開】\n{location_name_jp}駅付近で停止していた列車の情報が更新されなくなりました。運転を再開した可能性があります。"
                 notification_messages.append(message)
                 line_resumption_notified[line_id] = True
             
