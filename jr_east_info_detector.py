@@ -706,16 +706,31 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
                         
-                        # ★ 1. まず「時刻」を先に計算する
-                        resume_time = None # まずは空にしておく
-                        resume_estimate_time_str = line_info.get("odpt:resumeEstimate")
-                        if resume_estimate_time_str:
-                            try:
-                                # "HH:MM" 形式に変換 (全角対応はこっちにも必要かも？)
-                                # (ひとまずはAPIがISO形式で返すと仮定)
-                                resume_time = datetime.fromisoformat(resume_estimate_time_str).strftime('%H:%M')
-                            except (ValueError, TypeError):
-                                pass # 変換失敗
+                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status)
+                        title = f"【{line_name_jp} {current_info_status}】" # デフォルトのタイトル
+
+                        # ▼▼▼▼▼ これが「ちゃんと動いてた」ロジック ▼▼▼▼▼
+                        
+                        # 1. 現在のテキストを「半角」に翻訳
+                        normalized_text = unicodedata.normalize('NFKC', current_status_text)
+                        
+                        # 2. 翻訳後のテキストから「X時X分」を探す
+                        resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_text)
+                        
+                        if resume_match:
+                            resume_time = resume_match.group(1) # 例: "13時00分"
+                            title = f"【{line_name_jp} {current_info_status} {resume_time}】" # タイトルを上書き
+                            
+                            # 3. 「(変更)」を付けるか、前回のテキストも「半角」に翻訳して比較
+                            last_status_full = last_jr_east_statuses.get(line_id)
+                            if last_status_full:
+                                normalized_last_text = unicodedata.normalize('NFKC', last_status_full)
+                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)頃', normalized_last_text)
+                                
+                                if last_resume_match and last_resume_match.group(1) != resume_time:
+                                    title += "(変更)"
+                                elif "変更" in normalized_text:
+                                    title += "(変更)"
 
                         # ★ 2. 「時刻」を使って「本文用のステータス文」を確定させる
                         STATUS_PHRASES = {
@@ -734,17 +749,6 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                             else:
                                 # 時刻がない場合
                                 status_jp = "運転再開見込が発表されています。"
-
-                        # ★ 3. 「タイトル」を確定させる
-                        title = f"【{line_name_jp} {current_info_status}】"
-                        if resume_time:
-                            title = f"【{line_name_jp} {current_info_status} {resume_time}】"
-                            # (変更)チェックロジック
-                            last_status_full = last_jr_east_statuses.get(line_id)
-                            if last_status_full:
-                                last_resume_match = re.search(r'(\d{1,2}時\d{1,2}分)', last_status_full)
-                                if last_resume_match and last_resume_match.group(1) != resume_time.replace(':', '時') + '分': title += "(変更)"
-                                elif "変更" in last_status_full: title += "(変更)"
 
                         # ★ 4. 「原因」を抽出して、確定した「ステータス文(status_jp)」と合体
                         reason_text = ""
