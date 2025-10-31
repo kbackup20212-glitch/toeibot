@@ -36,6 +36,8 @@ tracked_delayed_trains: Dict[str, Dict[str, Any]] = {}
 line_cooldown_tracker: Dict[str, float] = {}
 # --- 路線ごとの「再開通知済み」フラグ ---
 line_resumption_notified: Dict[str, bool] = {}
+# ▼▼▼▼▼ この一行が抜けていた ▼▼▼▼▼
+line_prediction_cooldown_tracker: Dict[str, float] = {}
 
 # --- 設定値 ---
 DELAY_THRESHOLD_SECONDS = 3 * 60  # 3分 (180秒)
@@ -189,6 +191,7 @@ def _analyze_group_delay(line_id: str, line_name_jp: str, all_trains_on_line: Li
 # --- ★★★ 予測時刻計算（ヘルパー関数） ★★★ ---
 def _get_resume_prediction_text(line_id: str, line_info: Dict[str, Any], max_delay_seconds: int, current_time: float) -> str:
     global line_prediction_cooldown_tracker
+    
     
     print(f"--- [PREDICTION DEBUG @ {line_id}] ---", flush=True) # ★ログ追加
     
