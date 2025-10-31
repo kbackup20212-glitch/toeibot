@@ -706,6 +706,12 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                     if current_info_status and not any(keyword in current_info_status for keyword in NORMAL_STATUS_KEYWORDS):
                         line_name_jp = JR_LINE_PREDICTION_DATA.get(line_id, {}).get("name", line_id)
                         
+                        STATUS_PHRASES = {
+                            "遅延": "遅延しています。",
+                            "運転見合わせ": "運転を見合わせています。",
+                            "運転再開": "運転を再開しました。",
+                            "運転再開見込": "運転再開見込が発表されています。", # ★辞書はシンプルなまま
+                        }
                         status_jp = STATUS_PHRASES.get(current_info_status, current_info_status)
                         title = f"【{line_name_jp} {current_info_status}】" # デフォルトのタイトル
 
@@ -731,28 +737,14 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                                     title += "(変更)"
                                 elif "変更" in normalized_text:
                                     title += "(変更)"
-
-                        # ★ 2. 「時刻」を使って「本文用のステータス文」を確定させる
-                        STATUS_PHRASES = {
-                            "遅延": "遅延しています。",
-                            "運転見合わせ": "運転を見合わせています。",
-                            "運転再開": "運転を見合わせていましたが、先ほど運転を再開しました。",
-                            # 「運転再開見込」は、下で特別に作る
-                        }
                         
-                        status_jp = STATUS_PHRASES.get(current_info_status, current_info_status) # まず辞書から引く
-                        
-                        if current_info_status == "運転再開見込":
-                            if resume_time:
-                                # ★ 時刻がある場合、君が作りたかった文章を「ここ」で作る
-                                status_jp = f"運転を見合わせています。運転再開は{resume_time}頃を見込んでいます。"
-                            else:
-                                # 時刻がない場合
-                                status_jp = "運転再開見込が発表されています。"
+                        # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-                        # ★ 4. 「原因」を抽出して、確定した「ステータス文(status_jp)」と合体
+                        # --- 原因抽出 (こっちも翻訳後のテキストを使う) ---
                         reason_text = ""
-                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+                        # ★ 翻訳後のテキスト(normalized_text) を参照
+                        reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', normalized_text)
+                        
                         if reason_match:
                             location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                             actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
@@ -762,10 +754,8 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                                 reason_text = f"{actual_location}での{cause}のため、{status_jp}"
                         elif not reason_text:
                             current_info_cause = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                            if current_info_cause: 
-                                reason_text = f"{current_info_cause}のため、{status_jp}"
-                            else: 
-                                reason_text = current_status_text.split('。')[0] + "。"
+                            if current_info_cause: reason_text = f"{current_info_cause}のため、{status_jp}"
+                            else: reason_text = normalized_text.split('。')[0] + "。"
                         
                         final_message = f"{title}\n{reason_text}"
                         notification_messages.append(final_message)
