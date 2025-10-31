@@ -405,7 +405,18 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                              if analysis_result:
                                  # (原因特定ロジックは変更なし)
                                  status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
-                                 # ... (cause_text の特定) ...
+                                 # ▼▼▼▼▼ ここが修正箇所 ▼▼▼▼▼
+                                 cause_text = "何らかの事象" # ★ 1. まずデフォルト（代わり）を入れる
+                                 
+                                 reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
+                                 if reason_match:
+                                     location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
+                                     actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
+                                     cause_text = f"{actual_location}での{cause}" # ★ 2. 見つかったら上書き
+                                 else:
+                                     official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                                     if official_cause_text: 
+                                         cause_text = official_cause_text # ★ 3. こっちでも上書き
                                  
                                  # ★ 分析成功したら、正しい「範囲」と「本文」を上書き
                                  range_text = analysis_result['range_text'] # ★分析結果で上書き

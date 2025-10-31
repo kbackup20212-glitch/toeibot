@@ -106,7 +106,7 @@ def check_destination_predictions() -> Optional[List[str]]:
                     
                     delay_minutes = int(current_delay / 60)
 
-                    message_line1 = f"[{line_name_jp}] 早期行先変更予測"
+                    message_line1 = f"【{line_name_jp} 早期行先変更予測】"
                     message_line2 = f"{train_type_jp} {original_dest_jp}行き (→ {new_destination_jp}行きに変更の可能性)"
                     message_line3 = f"{location_text} (遅延:{delay_minutes}分)"
                     message_line4 = f"列番:{train_number}"
