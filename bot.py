@@ -11,6 +11,8 @@ import nextcord as discord
 import asyncio
 from flask import Flask
 from threading import Thread
+import unicodedata # ★★★ これが抜けてる ★★★
+from datetime import datetime
 
 from jr_east_detector import check_jr_east_irregularities
 from tama_monorail_info_detector import check_tama_monorail_info

@@ -354,7 +354,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                     if reason_match:
                                         location_part = reason_match.group(1).strip()
                                         actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                                        location_text = f"{actual_location}での" # 「での」を付ける
+                                        location_text = f"{actual_location}"
                                     
                                     # ▼▼▼▼▼ 発生時刻を計算 ▼▼▼▼▼
                                     event_time_str = ""
