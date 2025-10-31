@@ -709,8 +709,8 @@ def check_jr_east_info() -> Optional[tuple[List[str], Dict[str, Dict[str, Any]]]
                         STATUS_PHRASES = {
                             "遅延": "遅延しています。",
                             "運転見合わせ": "運転を見合わせています。",
-                            "運転再開": "運転を再開しました。",
-                            "運転再開見込": "運転再開見込が発表されています。", # ★辞書はシンプルなまま
+                            "運転再開": "運転を見合わせていましたが、運転を再開しました。",
+                            "運転再開見込": "運転を見合わせています。なお、運転再開見込が発表されています。", # ★辞書はシンプルなまま
                         }
                         status_jp = STATUS_PHRASES.get(current_info_status, current_info_status)
                         title = f"【{line_name_jp} {current_info_status}】" # デフォルトのタイトル
