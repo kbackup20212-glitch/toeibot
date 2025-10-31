@@ -299,19 +299,35 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                 
                                 if analysis_result:
                                     status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
-                                    cause_text = "何らかの事象"
+                                    
+                                    # ▼▼▼▼▼ ここからが修正箇所 ▼▼▼▼▼
+                                    # ★ 1. まず、分析官が推測した「場所」をデフォルトとして使う
+                                    location_text = analysis_result['cause_station_jp'] + "で" # 「で」を付ける
+                                    cause_text = "何らかの事象" # デフォルト原因
+                                    
+                                    # ★ 2. 正規表現で、もっと正確な「場所」と「原因」を探す
                                     reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
                                     if reason_match:
                                         location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                                         actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                                        cause_text = f"{actual_location}での{cause}"
+                                        location_text = f"{actual_location}での" # ★ 場所を上書き
+                                        cause_text = cause # ★ 原因を上書き
                                     else:
                                         official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
-                                        if official_cause_text: cause_text = official_cause_text
+                                        if official_cause_text: 
+                                            cause_text = official_cause_text # ★ 原因だけ上書き
                                     
+                                    # ★ 3. 発生時刻を計算
+                                    event_time_str = ""
+                                    tracking_start_time = tracking_info.get("tracking_start_time")
+                                    if tracking_start_time:
+                                        event_timestamp = tracking_start_time - 180
+                                        event_time_dt = datetime.fromtimestamp(event_timestamp, JST)
+                                        event_time_str = event_time_dt.strftime('%H:%M頃、')
+                                    
+                                    # ★ 4. 本文を組み立てる (location_text は空にならない)
                                     message_body = (
-                                        f"【{line_name_jp} 運転見合わせ】\n"
-                                        f"{event_time_str}{location_text}での{cause_text}の影響で、" # ★ 時刻と原因と場所を合体
+                                        f"{event_time_str}{location_text}{cause_text}の影響で、"
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
@@ -357,25 +373,27 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                  event_timestamp = tracking_start_time - 180 
                                  event_time_dt = datetime.fromtimestamp(event_timestamp, JST)
                                  event_time_str = event_time_dt.strftime('%H:%M頃、')
+                             
+                             location_text = f"{location_name_jp}駅付近での" # ★ 最後の手段の場所
+                             cause_text = "何らかの事象" # デフォルト原因
+                             message_body = f"{line_name_jp}は、{event_time_str}{location_text}{cause_text}の対処が長引いている可能性があります。(最大{int(current_delay / 60)}分遅れ)"
 
                              if analysis_result:
                                  status_to_check = line_info.get("odpt:trainInformationText", {}).get("ja", "")
-                                 cause_text = "何らかの事象"
                                  
-                                 # ★ 2. 次に「場所」を正規表現で探す
-                                 location_text = analysis_result['cause_station_jp'] # デフォルト
-                                 reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?', status_to_check)
+                                 # ★ 2. 分析官の推測場所をセット
+                                 location_text = analysis_result['cause_station_jp'] + "で"
+                                 
+                                 reason_match = re.search(r'(.+?(?:駅|駅間))で(?:の)?(.+?)の影響で', status_to_check)
                                  if reason_match:
-                                     location_part = reason_match.group(1).strip()
+                                     location_part = reason_match.group(1).strip(); cause = reason_match.group(2).strip()
                                      actual_location = re.split(r'[、\s]', location_part)[-1] if location_part else location_part
-                                     location_text = f"{actual_location}での"
-                                
-                                 event_time_str = ""
-                                 tracking_start_time = tracking_info.get("tracking_start_time")
-                                 if tracking_start_time:
-                                     event_timestamp = tracking_start_time - 180 
-                                     event_time_dt = datetime.fromtimestamp(event_timestamp, JST)
-                                     event_time_str = event_time_dt.strftime('%H:%M頃、')
+                                     location_text = f"{actual_location}での" # ★ 場所を上書き
+                                     cause_text = cause # ★ 原因を上書き
+                                 else:
+                                     official_cause_text = line_info.get("odpt:trainInformationCause", {}).get("ja")
+                                     if official_cause_text: 
+                                         cause_text = official_cause_text
                                  
                                  message_body = (
                                      f"{event_time_str}{cause_text}の対処が長引いている影響で、"
