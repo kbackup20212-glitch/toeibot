@@ -22,6 +22,7 @@ from jr_east_info_detector import check_jr_east_info
 from jr_east_delay_watcher import check_delay_increase
 from tobu_delay_watcher import check_tobu_delay_increase
 from jr_destination_predictor import check_destination_predictions 
+from toei_info_detector import check_toei_info, get_current_official_info as get_current_toei_official_info
 
 
 load_dotenv()
@@ -111,6 +112,12 @@ async def periodic_check():
             for msg in all_notifications:
                 await channel.send(msg)
         await asyncio.sleep(12)
+
+        #10. 都営 運行情報 ---
+        toei_result = await bot.loop.run_in_executor(None, check_toei_info)
+        if toei_result:
+            toei_info_messages, toei_official_info = toei_result
+            if toei_info_messages: all_notifications.extend(toei_info_messages)
 
 # (Botの起動部分は変更なし)
 keep_alive()
