@@ -367,7 +367,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                     
                                     message = (
                                         f"【{line_name_jp} 運転見合わせ】\n"
-                                        f"{event_time_str}{location_text}{cause_text}の影響で、" # ★ 時刻と原因と場所を合体
+                                        f"{event_time_str}{location_text}での{cause_text}の影響で、" # ★ 時刻と原因と場所を合体
                                         f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                         f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                     )
@@ -444,7 +444,7 @@ def check_delay_increase(official_info: Dict[str, Dict[str, Any]]) -> Optional[L
                                  
                                  message = (
                                      f"【{line_name_jp} 運転見合わせ[継続]】\n"
-                                     f"{event_time_str}{location_text}{cause_text}の対処が長引いている影響で、" # ★ 合体
+                                     f"{event_time_str}{location_text}での{cause_text}の対処が長引いている影響で、" # ★ 合体
                                      f"{analysis_result['range_text']}の{analysis_result['direction_text']}で運転を見合わせています。"
                                      f"(最大{analysis_result['max_delay_minutes']}分遅れ)"
                                  )
